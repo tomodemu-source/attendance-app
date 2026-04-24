@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>出欠管理 | Attendance Manager</title>
+<style>
+  :root {
+    color-scheme: light;
+    --teams-purple: #6264A7;
+    --teams-purple-dark: #464775;
+    --teams-purple-light: #E8E8F0;
+    --present: #107C10;
+    --present-bg: #DFF6DD;
+    --absent: #C50F1F;
+    --absent-bg: #FDE7E9;
+    --late: #D67D00;
+    --late-bg: #FFF4CE;
+    --excused: #0078D4;
+    --excused-bg: #EFF6FC;
+    --unset: #616161;
+    --unset-bg: #F3F2F1;
+    --border: #E1DFDD;
+    --bg: #F5F5F5;
+    --card: #FFFFFF;
+    --text: #201F1E;
+    --text-light: #605E5C;
+    --radius: 6px;
+    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .app-header { background: var(--teams-purple); color: white; padding: 14px 20px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+  .app-header h1 { font-size: 18px; font-weight: 600; }
+  .app-header .subtitle { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+  .tab-bar { background: white; border-bottom: 2px solid var(--border); display: flex; padding: 0 20px; }
+  .tab-btn { padding: 12px 20px; border: none; background: none; cursor: pointer; font-size: 14px; font-weight: 500; color: var(--text-light); border-bottom: 3px solid transparent; margin-bottom: -2px; transition: color 0.15s, border-color 0.15s; white-space: nowrap; }
+  .tab-btn:hover { color: var(--teams-purple); }
+  .tab-btn.active { color: var(--teams-purple); border-bottom-color: var(--teams-purple); }
+  .main { padding: 20px; max-width: 1100px; margin: 0 auto; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); padding: 20px; margin-bottom: 16px; }
+  .card-title { font-size: 15px; font-weight: 600; color: var(--teams-purple-dark); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .session-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .session-bar label { font-size: 13px; color: var(--text-light); font-weight: 500; }
+  select, input[type="text"], input[type="date"] { padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; color: var(--text); background: white; outline: none; transition: border-color 0.15s; }
+  select:focus, input:focus { border-color: var(--teams-purple); }
+  select { min-width: 160px; }
+  .btn { padding: 7px 16px; border-radius: var(--radius); border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: opacity 0.15s; display: inline-flex; align-items: center; gap: 6px; }
+  .btn:hover { opacity: 0.88; }
+  .btn-primary { background: var(--teams-purple); color: white; }
+  .btn-secondary { background: var(--teams-purple-light); color: var(--teams-purple-dark); }
+  .btn-danger { background: #FDE7E9; color: var(--absent); }
+  .btn-success { background: var(--present-bg); color: var(--present); }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .stat-card { background: white; border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; text-align: center; }
+  .stat-num { font-size: 26px; font-weight: 700; }
+  .stat-label { font-size: 11px; color: var(--text-light); margin-top: 4px; }
+  .stat-present .stat-num { color: var(--present); }
+  .stat-absent .stat-num { color: var(--absent); }
+  .stat-late .stat-num { color: var(--late); }
+  .stat-excused .stat-num { color: var(--excused); }
+  .stat-total .stat-num { color: var(--teams-purple); }
+  .attendance-list { display: flex; flex-direction: column; gap: 8px; }
+  .student-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: white; }
+  .student-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: white; flex-shrink: 0; }
+  .student-name { flex: 1; font-size: 14px; font-weight: 500; min-width: 100px; }
+  .student-id { font-size: 11px; color: var(--text-light); }
+  .status-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
+  .status-btn { padding: 5px 12px; border-radius: 20px; border: 1.5px solid transparent; cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.15s; background: var(--unset-bg); color: var(--unset); }
+  .status-btn.selected-present { background: var(--present-bg); color: var(--present); border-color: var(--present); }
+  .status-btn.selected-absent  { background: var(--absent-bg);  color: var(--absent);  border-color: var(--absent); }
+  .status-btn.selected-late    { background: var(--late-bg);    color: var(--late);    border-color: var(--late); }
+  .status-btn.selected-excused { background: var(--excused-bg); color: var(--excused); border-color: var(--excused); }
+  .note-input { padding: 4px 8px; font-size: 12px; width: 120px; border: 1px solid var(--border); border-radius: var(--radius); }
+  .bulk-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+  .bulk-bar span { font-size: 12px; color: var(--text-light); }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr { background: var(--teams-purple-light); }
+  th { padding: 10px 12px; text-align: left; font-weight: 600; color: var(--teams-purple-dark); white-space: nowrap; border-bottom: 2px solid var(--border); }
+  td { padding: 9px 12px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #FAFAFA; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-present { background: var(--present-bg); color: var(--present); }
+  .badge-absent  { background: var(--absent-bg);  color: var(--absent); }
+  .badge-late    { background: var(--late-bg);     color: var(--late); }
+  .badge-excused { background: var(--excused-bg);  color: var(--excused); }
+  .badge-unset   { background: var(--unset-bg);    color: var(--unset); }
+  .rate-bar-wrap { display: flex; align-items: center; gap: 6px; }
+  .rate-bar { flex: 1; height: 6px; background: var(--border); border-radius: 3px; min-width: 60px; }
+  .rate-fill { height: 100%; border-radius: 3px; background: var(--present); }
+  .student-manage-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .student-manage-row:last-child { border-bottom: none; }
+  .add-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+  .add-form .field { display: flex; flex-direction: column; gap: 4px; }
+  .add-form label { font-size: 11px; color: var(--text-light); font-weight: 500; }
+  .add-form input { width: 140px; }
+  .session-list { display: flex; flex-direction: column; gap: 6px; }
+  .session-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: white; }
+  .session-item .s-name { flex: 1; font-size: 14px; font-weight: 500; }
+  .session-item .s-date { font-size: 12px; color: var(--text-light); }
+  .session-item .s-count { font-size: 12px; color: var(--teams-purple); font-weight: 600; }
+  .active-session { border-color: var(--teams-purple) !important; background: var(--teams-purple-light) !important; }
+  .report-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .empty { text-align: center; padding: 40px; color: var(--text-light); font-size: 14px; }
+  #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #323130; color: white; padding: 10px 20px; border-radius: 6px; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 1000; white-space: nowrap; }
+  #toast.show { opacity: 1; }
+  @media (max-width: 600px) { .main { padding: 12px; } .status-buttons { gap: 4px; } .status-btn { padding: 4px 8px; font-size: 11px; } .note-input { width: 90px; } }
+</style>
+</head>
+<body>
+<div class="app-header">
+  <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="6" fill="white" fill-opacity="0.15"/><path d="M7 8h14v2H7V8zm0 5h10v2H7v-2zm0 5h14v2H7v-2z" fill="white"/><circle cx="22" cy="13" r="4" fill="#107C10"/><path d="M20.5 13l1 1 2-2" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <div><h1>出欠管理 — Attendance Manager</h1><div class="subtitle">Microsoft Teams 出席管理アプリ</div></div>
+</div>
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('tab-record',this)">📋 出欠登録</button>
+  <button class="tab-btn" onclick="switchTab('tab-overview',this)">📊 出席一覧</button>
+  <button class="tab-btn" onclick="switchTab('tab-report',this)">📄 レポート</button>
+  <button class="tab-btn" onclick="switchTab('tab-manage',this)">⚙️ 管理</button>
+</div>
+<div class="main">
+  <div id="tab-record" class="tab-panel active">
+    <div class="card">
+      <div class="card-title">🗂️ 授業回を選択</div>
+      <div class="session-bar">
+        <label>授業回：</label><select id="sessionSelect" onchange="loadSession()"></select>
+        <label>日付：</label><input type="date" id="sessionDate">
+        <button class="btn btn-primary" onclick="saveSessionDate()">💾 保存</button>
+        <button class="btn btn-secondary" onclick="addSessionDialog()">＋ 新規授業回</button>
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card stat-total"><div class="stat-num" id="st-total">0</div><div class="stat-label">受講者数</div></div>
+      <div class="stat-card stat-present"><div class="stat-num" id="st-present">0</div><div class="stat-label">出席</div></div>
+      <div class="stat-card stat-absent"><div class="stat-num" id="st-absent">0</div><div class="stat-label">欠席</div></div>
+      <div class="stat-card stat-late"><div class="stat-num" id="st-late">0</div><div class="stat-label">遅刻</div></div>
+      <div class="stat-card stat-excused"><div class="stat-num" id="st-excused">0</div><div class="stat-label">公欠</div></div>
+    </div>
+    <div class="card">
+      <div class="bulk-bar"><span>一括登録：</span><button class="btn btn-sm btn-success" onclick="bulkSet('present')">✓ 全員出席</button><button class="btn btn-sm btn-danger" onclick="bulkSet('absent')">✗ 全員欠席</button><button class="btn btn-sm btn-secondary" onclick="bulkSet(null)">↺ リセット</button></div>
+      <div class="attendance-list" id="attendanceList"><div class="empty">授業回を選択してください</div></div>
+    </div>
+  </div>
+  <div id="tab-overview" class="tab-panel">
+    <div class="card"><div class="card-title">📊 学生別出席率</div><div class="table-wrap"><table><thead><tr><th>学籍番号</th><th>氏名</th><th>出席</th><th>欠席</th><th>遅刻</th><th>公欠</th><th>未入力</th><th>出席率</th></tr></thead><tbody id="overviewBody"></tbody></table></div></div>
+    <div class="card"><div class="card-title">📅 授業回別出席状況</div><div class="table-wrap"><table><thead><tr id="sessionTableHead"></tr></thead><tbody id="sessionTableBody"></tbody></table></div></div>
+  </div>
+  <div id="tab-report" class="tab-panel">
+    <div class="card">
+      <div class="card-title">📄 CSV エクスポート</div>
+      <div class="report-controls">
+        <div><label style="font-size:13px;color:var(--text-light);display:block;margin-bottom:4px">対象</label><select id="exportTarget" onchange="toggleExportSession()"><option value="all">全授業回（学生別サマリー）</option><option value="session">特定の授業回</option><option value="matrix">マトリクス（全学生×全授業回）</option></select></div>
+        <div id="exportSessionWrap" style="display:none"><label style="font-size:13px;color:var(--text-light);display:block;margin-bottom:4px">授業回</label><select id="exportSession"></select></div>
+        <button class="btn btn-primary" style="margin-top:18px" onclick="exportCSV()">⬇ CSV ダウンロード</button>
+      </div>
+    </div>
+    <div class="card"><div class="card-title">📈 集計サマリー</div><div id="reportSummary"></div></div>
+  </div>
+  <div id="tab-manage" class="tab-panel">
+    <div class="card">
+      <div class="card-title">👥 学生管理</div>
+      <div class="add-form" style="margin-bottom:16px">
+        <div class="field"><label>学籍番号</label><input type="text" id="newStudentId" placeholder="例: S2024001" maxlength="12"></div>
+        <div class="field"><label>氏名</label><input type="text" id="newStudentName" placeholder="例: 山田 太郎"></div>
+        <button class="btn btn-primary" style="margin-top:18px" onclick="addStudent()">＋ 追加</button>
+      </div>
+      <div id="studentManageList"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🗓️ 授業回管理</div>
+      <div class="add-form" style="margin-bottom:16px">
+        <div class="field"><label>授業回名</label><input type="text" id="newSessionName" placeholder="例: 第1回"></div>
+        <div class="field"><label>日付</label><input type="date" id="newSessionDate"></div>
+        <button class="btn btn-primary" style="margin-top:18px" onclick="addSession()">＋ 追加</button>
+      </div>
+      <div class="session-list" id="sessionManageList"></div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="color:#C50F1F">⚠️ データ管理</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-danger" onclick="resetAll()">🗑 全データをリセット</button>
+        <button class="btn btn-secondary" onclick="loadSample()">🔄 サンプルデータを再読み込み</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+<script>
+const COLORS=['#6264A7','#0078D4','#038387','#107C10','#E8720C','#C239B3','#8764B8','#00B4D2'];
+const statusLabels={present:'出席',absent:'欠席',late:'遅刻',excused:'公欠'};
+let state={students:[],sessions:[],records:{}};
+
+// --- Persistence ---
+function save(){try{localStorage.setItem('attendance_state',JSON.stringify(state));}catch(e){}}
+function load(){try{const d=localStorage.getItem('attendance_state');if(d)state=JSON.parse(d);}catch(e){}}
+
+function loadSample(){
+  state={
+    students:[
+      {id:'S2024001',name:'山田 太郎',color:COLORS[0]},{id:'S2024002',name:'鈴木 花子',color:COLORS[1]},
+      {id:'S2024003',name:'田中 健一',color:COLORS[2]},{id:'S2024004',name:'佐藤 美咲',color:COLORS[3]},
+      {id:'S2024005',name:'伊藤 拓也',color:COLORS[4]},{id:'S2024006',name:'渡辺 さくら',color:COLORS[5]},
+      {id:'S2024007',name:'中村 隼人',color:COLORS[6]},{id:'S2024008',name:'小林 莉子',color:COLORS[7]}
+    ],
+    sessions:[{id:'s1',name:'第1回',date:'2026-04-10'},{id:'s2',name:'第2回',date:'2026-04-17'},{id:'s3',name:'第3回',date:'2026-04-24'}],
+    records:{
+      s1:{S2024001:{status:'present',note:''},S2024002:{status:'present',note:''},S2024003:{status:'absent',note:'体調不良'},S2024004:{status:'present',note:''},S2024005:{status:'late',note:'10分遅刻'},S2024006:{status:'present',note:''},S2024007:{status:'present',note:''},S2024008:{status:'excused',note:'部活遠征'}},
+      s2:{S2024001:{status:'present',note:''},S2024002:{status:'absent',note:''},S2024003:{status:'present',note:''},S2024004:{status:'present',note:''},S2024005:{status:'present',note:''},S2024006:{status:'late',note:'5分遅刻'},S2024007:{status:'absent',note:''},S2024008:{status:'present',note:''}},
+      s3:{}
+    }
+  };
+  save();init();toast('サンプルデータを読み込みました');
+}
+
+function init(){renderSessionSelect();renderManage();renderOverview();renderReport();const sel=document.getElementById('sessionSelect');if(sel.value)loadSession();}
+let toastTimer;
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2200);}
+function switchTab(id,btn){document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active');btn.classList.add('active');if(id==='tab-overview')renderOverview();if(id==='tab-report')renderReport();if(id==='tab-manage')renderManage();}
+function renderSessionSelect(){const sel=document.getElementById('sessionSelect');const es=document.getElementById('exportSession');const cur=sel.value;sel.innerHTML=state.sessions.map(s=>`<option value="${s.id}">${s.name}（${s.date||'日付未設定'}）</option>`).join('')||'<option value="">授業回なし</option>';if(cur&&state.sessions.find(s=>s.id===cur))sel.value=cur;es.innerHTML=sel.innerHTML;}
+function loadSession(){const sid=document.getElementById('sessionSelect').value;if(!sid)return;const sess=state.sessions.find(s=>s.id===sid);document.getElementById('sessionDate').value=sess?.date||'';if(!state.records[sid])state.records[sid]={};renderAttendanceList(sid);updateStats(sid);}
+function saveSessionDate(){const sid=document.getElementById('sessionSelect').value;const date=document.getElementById('sessionDate').value;const sess=state.sessions.find(s=>s.id===sid);if(sess){sess.date=date;save();renderSessionSelect();toast('日付を保存しました');}}
+function renderAttendanceList(sid){const el=document.getElementById('attendanceList');if(!state.students.length){el.innerHTML='<div class="empty">学生を登録してください（管理タブ）</div>';return;}el.innerHTML=state.students.map(st=>{const rec=(state.records[sid]||{})[st.id]||{status:null,note:''};return`<div class="student-row" id="row-${sid}-${st.id}"><div class="student-avatar" style="background:${st.color}">${st.name.charAt(0)}</div><div style="flex:1;min-width:0"><div class="student-name">${st.name}</div><div class="student-id">${st.id}</div></div><div class="status-buttons">${['present','absent','late','excused'].map(s=>`<button class="status-btn ${rec.status===s?'selected-'+s:''}" onclick="setStatus('${sid}','${st.id}','${s}',this)">${statusLabels[s]}</button>`).join('')}</div><input class="note-input" type="text" placeholder="備考" value="${rec.note||''}" oninput="setNote('${sid}','${st.id}',this.value)"/></div>`;}).join('');}
+function setStatus(sid,studentId,status,btn){if(!state.records[sid])state.records[sid]={};const rec=state.records[sid][studentId]||{status:null,note:''};rec.status=rec.status===status?null:status;state.records[sid][studentId]=rec;const row=document.getElementById(`row-${sid}-${studentId}`);['present','absent','late','excused'].forEach((s,i)=>{const b=row.querySelectorAll('.status-btn')[i];b.className='status-btn'+(rec.status===s?' selected-'+s:'');});save();updateStats(sid);}
+function setNote(sid,studentId,note){if(!state.records[sid])state.records[sid]={};if(!state.records[sid][studentId])state.records[sid][studentId]={status:null,note:''};state.records[sid][studentId].note=note;save();}
+function bulkSet(status){const sid=document.getElementById('sessionSelect').value;if(!sid)return;if(!state.records[sid])state.records[sid]={};state.students.forEach(st=>{if(!state.records[sid][st.id])state.records[sid][st.id]={status:null,note:''};state.records[sid][st.id].status=status;});save();renderAttendanceList(sid);updateStats(sid);toast(status?`全員を「${statusLabels[status]}」に設定しました`:'リセットしました');}
+function updateStats(sid){const recs=state.records[sid]||{};let p=0,a=0,l=0,e=0;state.students.forEach(st=>{const s=(recs[st.id]||{}).status;if(s==='present')p++;else if(s==='absent')a++;else if(s==='late')l++;else if(s==='excused')e++;});document.getElementById('st-total').textContent=state.students.length;document.getElementById('st-present').textContent=p;document.getElementById('st-absent').textContent=a;document.getElementById('st-late').textContent=l;document.getElementById('st-excused').textContent=e;}
+function renderOverview(){const tbody=document.getElementById('overviewBody');tbody.innerHTML=state.students.map(st=>{let p=0,a=0,l=0,e=0,u=0;state.sessions.forEach(sess=>{const s=((state.records[sess.id]||{})[st.id]||{}).status;if(s==='present')p++;else if(s==='absent')a++;else if(s==='late')l++;else if(s==='excused')e++;else u++;});const rate=Math.round((p+l)/Math.max(p+a+l+e,1)*100);return`<tr><td>${st.id}</td><td><span style="display:inline-flex;align-items:center;gap:7px"><span style="width:24px;height:24px;border-radius:50%;background:${st.color};display:inline-flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700">${st.name.charAt(0)}</span>${st.name}</span></td><td><span class="badge badge-present">${p}</span></td><td><span class="badge badge-absent">${a}</span></td><td><span class="badge badge-late">${l}</span></td><td><span class="badge badge-excused">${e}</span></td><td>${u}</td><td><div class="rate-bar-wrap"><div class="rate-bar"><div class="rate-fill" style="width:${rate}%"></div></div><span style="font-size:12px;font-weight:600;color:var(--present);min-width:34px">${rate}%</span></div></td></tr>`;}).join('')||'<tr><td colspan="8" class="empty">学生が登録されていません</td></tr>';const head=document.getElementById('sessionTableHead');const mbody=document.getElementById('sessionTableBody');head.innerHTML='<th>氏名</th>'+state.sessions.map(s=>`<th>${s.name}<br><span style="font-weight:400;font-size:11px">${s.date||''}</span></th>`).join('');mbody.innerHTML=state.students.map(st=>{const cells=state.sessions.map(sess=>{const s=((state.records[sess.id]||{})[st.id]||{}).status;return`<td><span class="badge ${s?'badge-'+s:'badge-unset'}">${s?statusLabels[s]:'―'}</span></td>`;}).join('');return`<tr><td>${st.name}</td>${cells}</tr>`;}).join('')||`<tr><td colspan="${state.sessions.length+1}" class="empty">データなし</td></tr>`;}
+function toggleExportSession(){document.getElementById('exportSessionWrap').style.display=document.getElementById('exportTarget').value==='session'?'':'none';}
+function renderReport(){renderSessionSelect();const el=document.getElementById('reportSummary');let html='<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:var(--teams-purple-light)"><th style="padding:8px 12px;text-align:left">授業回</th><th style="padding:8px 12px;text-align:center">出席</th><th style="padding:8px 12px;text-align:center">欠席</th><th style="padding:8px 12px;text-align:center">遅刻</th><th style="padding:8px 12px;text-align:center">公欠</th><th style="padding:8px 12px;text-align:center">出席率</th></tr></thead><tbody>';state.sessions.forEach(sess=>{const recs=state.records[sess.id]||{};let p=0,a=0,l=0,e=0;state.students.forEach(st=>{const s=(recs[st.id]||{}).status;if(s==='present')p++;else if(s==='absent')a++;else if(s==='late')l++;else if(s==='excused')e++;});const rate=state.students.length>0?Math.round((p+l)/Math.max(p+a+l+e,1)*100):0;html+=`<tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-weight:500">${sess.name}<br><span style="font-size:11px;color:var(--text-light)">${sess.date||''}</span></td><td style="padding:8px 12px;text-align:center"><span class="badge badge-present">${p}</span></td><td style="padding:8px 12px;text-align:center"><span class="badge badge-absent">${a}</span></td><td style="padding:8px 12px;text-align:center"><span class="badge badge-late">${l}</span></td><td style="padding:8px 12px;text-align:center"><span class="badge badge-excused">${e}</span></td><td style="padding:8px 12px;text-align:center;font-weight:600;color:var(--present)">${rate}%</td></tr>`;});html+='</tbody></table>';if(!state.sessions.length)html='<div class="empty">授業回が登録されていません</div>';el.innerHTML=html;}
+function exportCSV(){const target=document.getElementById('exportTarget').value;let csv='',filename='';if(target==='session'){const sid=document.getElementById('exportSession').value;const sess=state.sessions.find(s=>s.id===sid);csv='学籍番号,氏名,出欠状況,備考\n';state.students.forEach(st=>{const rec=((state.records[sid]||{})[st.id])||{status:'',note:''};csv+=`"${st.id}","${st.name}","${statusLabels[rec.status]||'未入力'}","${rec.note||''}"\n`;});filename=`出欠_${sess?.name||sid}_${sess?.date||''}.csv`;}else if(target==='matrix'){csv='学籍番号,氏名,'+state.sessions.map(s=>s.name).join(',')+'\n';state.students.forEach(st=>{const row=[st.id,st.name,...state.sessions.map(sess=>{const s=((state.records[sess.id]||{})[st.id]||{}).status;return statusLabels[s]||'未入力';})];csv+=row.map(v=>`"${v}"`).join(',')+'\n';});filename=`出欠マトリクス_${today()}.csv`;}else{csv='学籍番号,氏名,出席回数,欠席回数,遅刻回数,公欠回数,出席率\n';state.students.forEach(st=>{let p=0,a=0,l=0,e=0;state.sessions.forEach(sess=>{const s=((state.records[sess.id]||{})[st.id]||{}).status;if(s==='present')p++;else if(s==='absent')a++;else if(s==='late')l++;else if(s==='excused')e++;});const rate=Math.round((p+l)/Math.max(p+a+l+e,1)*100);csv+=`"${st.id}","${st.name}",${p},${a},${l},${e},${rate}%\n`;});filename=`出欠サマリー_${today()}.csv`;}const bom='\uFEFF';const blob=new Blob([bom+csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url);toast(`${filename} をダウンロードしました`);}
+function today(){return new Date().toISOString().slice(0,10);}
+function renderManage(){const el=document.getElementById('studentManageList');el.innerHTML=state.students.length?state.students.map((st,i)=>`<div class="student-manage-row"><div class="student-avatar" style="background:${st.color};width:32px;height:32px;font-size:13px">${st.name.charAt(0)}</div><span style="font-size:14px;font-weight:500;flex:1">${st.name}</span><span style="font-size:12px;color:var(--text-light)">${st.id}</span><button class="btn btn-sm btn-danger" onclick="removeStudent(${i})">削除</button></div>`).join(''):'<div class="empty" style="padding:20px">学生が登録されていません</div>';const sl=document.getElementById('sessionManageList');const sid=document.getElementById('sessionSelect').value;sl.innerHTML=state.sessions.map((s,i)=>`<div class="session-item ${s.id===sid?'active-session':''}"><span class="s-name">${s.name}</span><span class="s-date">${s.date||'日付未設定'}</span><span class="s-count">${countRecords(s.id)} / ${state.students.length} 入力済</span><button class="btn btn-sm btn-danger" onclick="removeSession(${i})">削除</button></div>`).join('')||'<div class="empty" style="padding:16px">授業回が登録されていません</div>';}
+function countRecords(sid){return Object.values(state.records[sid]||{}).filter(r=>r.status).length;}
+function addStudent(){const id=document.getElementById('newStudentId').value.trim();const name=document.getElementById('newStudentName').value.trim();if(!id||!name){toast('学籍番号と氏名を入力してください');return;}if(state.students.find(s=>s.id===id)){toast('この学籍番号はすでに登録済みです');return;}const color=COLORS[state.students.length%COLORS.length];state.students.push({id,name,color});document.getElementById('newStudentId').value='';document.getElementById('newStudentName').value='';save();renderManage();renderSessionSelect();toast(`${name} を追加しました`);}
+function removeStudent(i){const st=state.students[i];if(!confirm(`「${st.name}」を削除しますか？`))return;state.students.splice(i,1);Object.keys(state.records).forEach(sid=>delete(state.records[sid]||{})[st.id]);save();renderManage();renderSessionSelect();const cur=document.getElementById('sessionSelect').value;if(cur){renderAttendanceList(cur);updateStats(cur);}toast(`${st.name} を削除しました`);}
+function addSession(){const name=document.getElementById('newSessionName').value.trim();const date=document.getElementById('newSessionDate').value;if(!name){toast('授業回名を入力してください');return;}const id='s'+Date.now();state.sessions.push({id,name,date});state.records[id]={};document.getElementById('newSessionName').value='';document.getElementById('newSessionDate').value='';save();renderManage();renderSessionSelect();renderReport();toast(`「${name}」を追加しました`);}
+function addSessionDialog(){const name=prompt('授業回名を入力してください（例：第4回）');if(!name)return;const date=prompt('日付を入力してください（YYYY-MM-DD）',today());const id='s'+Date.now();state.sessions.push({id,name,date:date||''});state.records[id]={};save();renderSessionSelect();document.getElementById('sessionSelect').value=id;loadSession();toast(`「${name}」を作成しました`);}
+function removeSession(i){const sess=state.sessions[i];if(!confirm(`「${sess.name}」を削除しますか？`))return;state.sessions.splice(i,1);delete state.records[sess.id];save();renderManage();renderSessionSelect();const first=state.sessions[0];if(first){document.getElementById('sessionSelect').value=first.id;loadSession();}else{document.getElementById('attendanceList').innerHTML='<div class="empty">授業回を選択してください</div>';updateStats('');}toast(`「${sess.name}」を削除しました`);}
+function resetAll(){if(!confirm('すべてのデータを削除しますか？この操作は元に戻せません。'))return;state={students:[],sessions:[],records:{}};save();init();toast('全データをリセットしました');}
+
+// Boot: load persisted data or sample
+load();
+if(!state.students.length && !state.sessions.length) loadSample();
+else init();
+</script>
+</body>
+</html>
