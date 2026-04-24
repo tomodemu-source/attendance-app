@@ -1,0 +1,36 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.17",
+  "version": "1.0.0",
+  "id": "a3f1c2d4-5e6b-7890-abcd-ef1234567890",
+  "developer": {
+    "name": "Your School / Organization",
+    "websiteUrl": "https://example.com",
+    "privacyUrl": "https://example.com/privacy",
+    "termsOfUseUrl": "https://example.com/terms"
+  },
+  "name": {
+    "short": "出欠管理",
+    "full": "クラス出欠管理 - Attendance Manager"
+  },
+  "description": {
+    "short": "学生の出欠を授業回ごとに記録・管理するアプリ",
+    "full": "クラスの学生出欠管理アプリです。授業回ごとの出席・欠席・遅刻・公欠を登録し、出席率の確認やCSVエクスポートができます。"
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "accentColor": "#6264A7",
+  "staticTabs": [
+    {
+      "entityId": "attendanceTab",
+      "name": "出欠管理",
+      "contentUrl": "https://YOUR-HOSTING-URL/index.html",
+      "websiteUrl": "https://YOUR-HOSTING-URL/index.html",
+      "scopes": ["team", "groupChat"]
+    }
+  ],
+  "permissions": ["identity", "messageTeamMembers"],
+  "validDomains": ["YOUR-HOSTING-DOMAIN"]
+}
