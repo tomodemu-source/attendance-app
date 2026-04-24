@@ -4,29 +4,21 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>出欠管理 | Attendance Manager</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root {
     color-scheme: light;
     --teams-purple: #6264A7;
     --teams-purple-dark: #464775;
     --teams-purple-light: #E8E8F0;
-    --present: #107C10;
-    --present-bg: #DFF6DD;
-    --absent: #C50F1F;
-    --absent-bg: #FDE7E9;
-    --late: #D67D00;
-    --late-bg: #FFF4CE;
-    --excused: #0078D4;
-    --excused-bg: #EFF6FC;
-    --unset: #616161;
-    --unset-bg: #F3F2F1;
-    --border: #E1DFDD;
-    --bg: #F5F5F5;
-    --card: #FFFFFF;
-    --text: #201F1E;
-    --text-light: #605E5C;
-    --radius: 6px;
-    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+    --present: #107C10; --present-bg: #DFF6DD;
+    --absent: #C50F1F;  --absent-bg: #FDE7E9;
+    --late: #D67D00;    --late-bg: #FFF4CE;
+    --excused: #0078D4; --excused-bg: #EFF6FC;
+    --unset: #616161;   --unset-bg: #F3F2F1;
+    --border: #E1DFDD; --bg: #F5F5F5; --card: #FFFFFF;
+    --text: #201F1E;   --text-light: #605E5C;
+    --radius: 6px;     --shadow: 0 2px 8px rgba(0,0,0,0.08);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
@@ -38,8 +30,7 @@
   .tab-btn:hover { color: var(--teams-purple); }
   .tab-btn.active { color: var(--teams-purple); border-bottom-color: var(--teams-purple); }
   .main { padding: 20px; max-width: 1100px; margin: 0 auto; }
-  .tab-panel { display: none; }
-  .tab-panel.active { display: block; }
+  .tab-panel { display: none; } .tab-panel.active { display: block; }
   .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); padding: 20px; margin-bottom: 16px; }
   .card-title { font-size: 15px; font-weight: 600; color: var(--teams-purple-dark); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
   .session-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -56,13 +47,8 @@
   .btn-sm { padding: 4px 10px; font-size: 12px; }
   .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 16px; }
   .stat-card { background: white; border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; text-align: center; }
-  .stat-num { font-size: 26px; font-weight: 700; }
-  .stat-label { font-size: 11px; color: var(--text-light); margin-top: 4px; }
-  .stat-present .stat-num { color: var(--present); }
-  .stat-absent .stat-num { color: var(--absent); }
-  .stat-late .stat-num { color: var(--late); }
-  .stat-excused .stat-num { color: var(--excused); }
-  .stat-total .stat-num { color: var(--teams-purple); }
+  .stat-num { font-size: 26px; font-weight: 700; } .stat-label { font-size: 11px; color: var(--text-light); margin-top: 4px; }
+  .stat-present .stat-num{color:var(--present)} .stat-absent .stat-num{color:var(--absent)} .stat-late .stat-num{color:var(--late)} .stat-excused .stat-num{color:var(--excused)} .stat-total .stat-num{color:var(--teams-purple)}
   .attendance-list { display: flex; flex-direction: column; gap: 8px; }
   .student-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: white; }
   .student-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: white; flex-shrink: 0; }
@@ -70,10 +56,10 @@
   .student-id { font-size: 11px; color: var(--text-light); }
   .status-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
   .status-btn { padding: 5px 12px; border-radius: 20px; border: 1.5px solid transparent; cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.15s; background: var(--unset-bg); color: var(--unset); }
-  .status-btn.selected-present { background: var(--present-bg); color: var(--present); border-color: var(--present); }
-  .status-btn.selected-absent  { background: var(--absent-bg);  color: var(--absent);  border-color: var(--absent); }
-  .status-btn.selected-late    { background: var(--late-bg);    color: var(--late);    border-color: var(--late); }
-  .status-btn.selected-excused { background: var(--excused-bg); color: var(--excused); border-color: var(--excused); }
+  .status-btn.selected-present{background:var(--present-bg);color:var(--present);border-color:var(--present)}
+  .status-btn.selected-absent{background:var(--absent-bg);color:var(--absent);border-color:var(--absent)}
+  .status-btn.selected-late{background:var(--late-bg);color:var(--late);border-color:var(--late)}
+  .status-btn.selected-excused{background:var(--excused-bg);color:var(--excused);border-color:var(--excused)}
   .note-input { padding: 4px 8px; font-size: 12px; width: 120px; border: 1px solid var(--border); border-radius: var(--radius); }
   .bulk-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
   .bulk-bar span { font-size: 12px; color: var(--text-light); }
@@ -85,11 +71,8 @@
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: #FAFAFA; }
   .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
-  .badge-present { background: var(--present-bg); color: var(--present); }
-  .badge-absent  { background: var(--absent-bg);  color: var(--absent); }
-  .badge-late    { background: var(--late-bg);     color: var(--late); }
-  .badge-excused { background: var(--excused-bg);  color: var(--excused); }
-  .badge-unset   { background: var(--unset-bg);    color: var(--unset); }
+  .badge-present{background:var(--present-bg);color:var(--present)} .badge-absent{background:var(--absent-bg);color:var(--absent)}
+  .badge-late{background:var(--late-bg);color:var(--late)} .badge-excused{background:var(--excused-bg);color:var(--excused)} .badge-unset{background:var(--unset-bg);color:var(--unset)}
   .rate-bar-wrap { display: flex; align-items: center; gap: 6px; }
   .rate-bar { flex: 1; height: 6px; background: var(--border); border-radius: 3px; min-width: 60px; }
   .rate-fill { height: 100%; border-radius: 3px; background: var(--present); }
@@ -101,15 +84,39 @@
   .add-form input { width: 140px; }
   .session-list { display: flex; flex-direction: column; gap: 6px; }
   .session-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: white; }
-  .session-item .s-name { flex: 1; font-size: 14px; font-weight: 500; }
-  .session-item .s-date { font-size: 12px; color: var(--text-light); }
-  .session-item .s-count { font-size: 12px; color: var(--teams-purple); font-weight: 600; }
-  .active-session { border-color: var(--teams-purple) !important; background: var(--teams-purple-light) !important; }
+  .session-item .s-name{flex:1;font-size:14px;font-weight:500} .session-item .s-date{font-size:12px;color:var(--text-light)} .session-item .s-count{font-size:12px;color:var(--teams-purple);font-weight:600}
+  .active-session{border-color:var(--teams-purple)!important;background:var(--teams-purple-light)!important}
   .report-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
   .empty { text-align: center; padding: 40px; color: var(--text-light); font-size: 14px; }
   #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #323130; color: white; padding: 10px 20px; border-radius: 6px; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 1000; white-space: nowrap; }
   #toast.show { opacity: 1; }
-  @media (max-width: 600px) { .main { padding: 12px; } .status-buttons { gap: 4px; } .status-btn { padding: 4px 8px; font-size: 11px; } .note-input { width: 90px; } }
+
+  /* ── Import UI ── */
+  .import-box { border: 2px dashed var(--teams-purple); border-radius: var(--radius); padding: 28px 20px; text-align: center; background: var(--teams-purple-light); cursor: pointer; transition: background 0.15s; }
+  .import-box:hover { background: #d8d8ec; }
+  .import-box input[type="file"] { display: none; }
+  .import-box .import-icon { font-size: 36px; margin-bottom: 8px; }
+  .import-box p { color: var(--teams-purple-dark); font-size: 14px; font-weight: 500; }
+  .import-box small { color: var(--text-light); font-size: 12px; }
+  .import-preview { margin-top: 16px; }
+  .import-preview h4 { font-size: 13px; font-weight: 600; color: var(--teams-purple-dark); margin-bottom: 10px; }
+  .col-map { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; padding: 12px; background: #f9f9fb; border-radius: var(--radius); border: 1px solid var(--border); }
+  .col-map .field { display: flex; flex-direction: column; gap: 4px; }
+  .col-map label { font-size: 11px; color: var(--text-light); font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+  .col-map select { min-width: 140px; font-size: 13px; }
+  .preview-table-wrap { max-height: 220px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+  .preview-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .preview-table th { background: var(--teams-purple-light); padding: 6px 10px; text-align: left; font-weight: 600; color: var(--teams-purple-dark); position: sticky; top: 0; }
+  .preview-table td { padding: 5px 10px; border-bottom: 1px solid var(--border); }
+  .preview-table tr:hover td { background: #fafafa; }
+  .import-actions { display: flex; gap: 10px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  .import-count { font-size: 13px; color: var(--text-light); }
+  .role-filter { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-light); }
+  .steps-guide { background: var(--teams-purple-light); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 16px; border-left: 3px solid var(--teams-purple); }
+  .steps-guide p { font-size: 13px; color: var(--teams-purple-dark); font-weight: 600; margin-bottom: 8px; }
+  .steps-guide ol { padding-left: 18px; }
+  .steps-guide li { font-size: 13px; color: var(--text); line-height: 1.8; }
+  .steps-guide code { background: white; padding: 1px 5px; border-radius: 3px; font-size: 12px; color: var(--teams-purple-dark); }
 </style>
 </head>
 <body>
@@ -124,6 +131,8 @@
   <button class="tab-btn" onclick="switchTab('tab-manage',this)">⚙️ 管理</button>
 </div>
 <div class="main">
+
+  <!-- TAB 1 -->
   <div id="tab-record" class="tab-panel active">
     <div class="card">
       <div class="card-title">🗂️ 授業回を選択</div>
@@ -146,10 +155,14 @@
       <div class="attendance-list" id="attendanceList"><div class="empty">授業回を選択してください</div></div>
     </div>
   </div>
+
+  <!-- TAB 2 -->
   <div id="tab-overview" class="tab-panel">
     <div class="card"><div class="card-title">📊 学生別出席率</div><div class="table-wrap"><table><thead><tr><th>学籍番号</th><th>氏名</th><th>出席</th><th>欠席</th><th>遅刻</th><th>公欠</th><th>未入力</th><th>出席率</th></tr></thead><tbody id="overviewBody"></tbody></table></div></div>
     <div class="card"><div class="card-title">📅 授業回別出席状況</div><div class="table-wrap"><table><thead><tr id="sessionTableHead"></tr></thead><tbody id="sessionTableBody"></tbody></table></div></div>
   </div>
+
+  <!-- TAB 3 -->
   <div id="tab-report" class="tab-panel">
     <div class="card">
       <div class="card-title">📄 CSV エクスポート</div>
@@ -161,16 +174,84 @@
     </div>
     <div class="card"><div class="card-title">📈 集計サマリー</div><div id="reportSummary"></div></div>
   </div>
+
+  <!-- TAB 4 管理 -->
   <div id="tab-manage" class="tab-panel">
+
+    <!-- ★ Teams名簿インポート -->
     <div class="card">
-      <div class="card-title">👥 学生管理</div>
+      <div class="card-title">📥 Teamsクラス名簿から読み込み</div>
+
+      <div class="steps-guide">
+        <p>📌 Teamsからの名簿エクスポート手順</p>
+        <ol>
+          <li>Teamsでクラスチャネルを開く</li>
+          <li>上部の <code>メンバー</code> タブをクリック</li>
+          <li>右上の <code>⬇ エクスポート</code>（またはExcelアイコン）をクリック</li>
+          <li>ダウンロードされた <code>.xlsx</code> または <code>.csv</code> ファイルをここに読み込む</li>
+        </ol>
+      </div>
+
+      <label class="import-box" id="importBox">
+        <input type="file" id="importFile" accept=".csv,.xlsx,.xls" onchange="handleImportFile(event)">
+        <div class="import-icon">📂</div>
+        <p>クリックまたはファイルをドロップ</p>
+        <small>.xlsx / .csv ファイルに対応</small>
+      </label>
+
+      <div class="import-preview" id="importPreview" style="display:none">
+        <h4>② 列を指定してください</h4>
+        <div class="col-map">
+          <div class="field">
+            <label>氏名の列</label>
+            <select id="colName" onchange="refreshPreview()"></select>
+          </div>
+          <div class="field">
+            <label>学籍番号・メールの列</label>
+            <select id="colId" onchange="refreshPreview()"></select>
+          </div>
+          <div class="field">
+            <label>役割の列（任意）</label>
+            <select id="colRole" onchange="refreshPreview()">
+              <option value="">なし</option>
+            </select>
+          </div>
+          <div class="field" id="roleFilterWrap" style="display:none">
+            <label>インポート対象</label>
+            <select id="roleFilterVal" onchange="refreshPreview()">
+              <option value="">全員</option>
+              <option value="member">メンバーのみ（所有者・教師を除く）</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="preview-table-wrap">
+          <table class="preview-table">
+            <thead><tr><th>氏名</th><th>学籍番号 / ID</th><th>役割</th></tr></thead>
+            <tbody id="previewBody"></tbody>
+          </table>
+        </div>
+
+        <div class="import-actions">
+          <span class="import-count" id="importCount"></span>
+          <button class="btn btn-primary" onclick="doImport()">✅ 読み込む</button>
+          <button class="btn btn-secondary" onclick="cancelImport()">キャンセル</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 手動追加 -->
+    <div class="card">
+      <div class="card-title">👥 学生を手動で追加</div>
       <div class="add-form" style="margin-bottom:16px">
-        <div class="field"><label>学籍番号</label><input type="text" id="newStudentId" placeholder="例: S2024001" maxlength="12"></div>
+        <div class="field"><label>学籍番号</label><input type="text" id="newStudentId" placeholder="例: S2024001" maxlength="20"></div>
         <div class="field"><label>氏名</label><input type="text" id="newStudentName" placeholder="例: 山田 太郎"></div>
         <button class="btn btn-primary" style="margin-top:18px" onclick="addStudent()">＋ 追加</button>
       </div>
       <div id="studentManageList"></div>
     </div>
+
+    <!-- 授業回管理 -->
     <div class="card">
       <div class="card-title">🗓️ 授業回管理</div>
       <div class="add-form" style="margin-bottom:16px">
@@ -180,73 +261,236 @@
       </div>
       <div class="session-list" id="sessionManageList"></div>
     </div>
+
+    <!-- データ管理 -->
     <div class="card">
       <div class="card-title" style="color:#C50F1F">⚠️ データ管理</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn btn-danger" onclick="resetAll()">🗑 全データをリセット</button>
-        <button class="btn btn-secondary" onclick="loadSample()">🔄 サンプルデータを再読み込み</button>
+        <button class="btn btn-secondary" onclick="clearStudents()">👤 学生データのみリセット</button>
       </div>
     </div>
   </div>
+
 </div>
 <div id="toast"></div>
+
 <script>
 const COLORS=['#6264A7','#0078D4','#038387','#107C10','#E8720C','#C239B3','#8764B8','#00B4D2'];
 const statusLabels={present:'出席',absent:'欠席',late:'遅刻',excused:'公欠'};
 let state={students:[],sessions:[],records:{}};
+let importRows=[], importHeaders=[];
 
-// --- Persistence ---
-function save(){try{localStorage.setItem('attendance_state',JSON.stringify(state));}catch(e){}}
-function load(){try{const d=localStorage.getItem('attendance_state');if(d)state=JSON.parse(d);}catch(e){}}
+/* ── Persistence ── */
+function save(){try{localStorage.setItem('attendance_v2',JSON.stringify(state));}catch(e){}}
+function loadState(){try{const d=localStorage.getItem('attendance_v2');if(d)state=JSON.parse(d);}catch(e){}}
 
-function loadSample(){
-  state={
-    students:[
-      {id:'S2024001',name:'山田 太郎',color:COLORS[0]},{id:'S2024002',name:'鈴木 花子',color:COLORS[1]},
-      {id:'S2024003',name:'田中 健一',color:COLORS[2]},{id:'S2024004',name:'佐藤 美咲',color:COLORS[3]},
-      {id:'S2024005',name:'伊藤 拓也',color:COLORS[4]},{id:'S2024006',name:'渡辺 さくら',color:COLORS[5]},
-      {id:'S2024007',name:'中村 隼人',color:COLORS[6]},{id:'S2024008',name:'小林 莉子',color:COLORS[7]}
-    ],
-    sessions:[{id:'s1',name:'第1回',date:'2026-04-10'},{id:'s2',name:'第2回',date:'2026-04-17'},{id:'s3',name:'第3回',date:'2026-04-24'}],
-    records:{
-      s1:{S2024001:{status:'present',note:''},S2024002:{status:'present',note:''},S2024003:{status:'absent',note:'体調不良'},S2024004:{status:'present',note:''},S2024005:{status:'late',note:'10分遅刻'},S2024006:{status:'present',note:''},S2024007:{status:'present',note:''},S2024008:{status:'excused',note:'部活遠征'}},
-      s2:{S2024001:{status:'present',note:''},S2024002:{status:'absent',note:''},S2024003:{status:'present',note:''},S2024004:{status:'present',note:''},S2024005:{status:'present',note:''},S2024006:{status:'late',note:'5分遅刻'},S2024007:{status:'absent',note:''},S2024008:{status:'present',note:''}},
-      s3:{}
-    }
-  };
-  save();init();toast('サンプルデータを読み込みました');
-}
-
+/* ── Init ── */
 function init(){renderSessionSelect();renderManage();renderOverview();renderReport();const sel=document.getElementById('sessionSelect');if(sel.value)loadSession();}
 let toastTimer;
-function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2200);}
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2500);}
 function switchTab(id,btn){document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active');btn.classList.add('active');if(id==='tab-overview')renderOverview();if(id==='tab-report')renderReport();if(id==='tab-manage')renderManage();}
-function renderSessionSelect(){const sel=document.getElementById('sessionSelect');const es=document.getElementById('exportSession');const cur=sel.value;sel.innerHTML=state.sessions.map(s=>`<option value="${s.id}">${s.name}（${s.date||'日付未設定'}）</option>`).join('')||'<option value="">授業回なし</option>';if(cur&&state.sessions.find(s=>s.id===cur))sel.value=cur;es.innerHTML=sel.innerHTML;}
+
+/* ── Import: File handling ── */
+function handleImportFile(e){
+  const file=e.target.files[0];
+  if(!file)return;
+  const ext=file.name.split('.').pop().toLowerCase();
+  const reader=new FileReader();
+
+  if(ext==='csv'){
+    reader.onload=ev=>parseCSV(ev.target.result);
+    reader.readAsText(file,'UTF-8');
+  } else {
+    reader.onload=ev=>{
+      const wb=XLSX.read(ev.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const data=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      processRawData(data);
+    };
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+function parseCSV(text){
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  const data=lines.map(line=>{
+    const cells=[];let cur='',inQ=false;
+    for(let i=0;i<line.length;i++){
+      if(line[i]==='"'){inQ=!inQ;}
+      else if(line[i]===','&&!inQ){cells.push(cur.trim());cur='';}
+      else cur+=line[i];
+    }
+    cells.push(cur.trim());
+    return cells;
+  });
+  processRawData(data);
+}
+
+function processRawData(data){
+  if(data.length<2){toast('データが少なすぎます');return;}
+  importHeaders=data[0].map(h=>String(h).trim());
+  importRows=data.slice(1).filter(r=>r.some(c=>String(c).trim()));
+
+  // Auto-detect columns
+  const nameIdx  = bestMatch(importHeaders,['名前','氏名','表示名','name','displayname','fullname','display name']);
+  const idIdx    = bestMatch(importHeaders,['メールアドレス','メール','学籍番号','email','upn','mail','id','username']);
+  const roleIdx  = bestMatch(importHeaders,['ロール','役割','role','type']);
+
+  // Populate column selects
+  ['colName','colId','colRole'].forEach(id=>{
+    const sel=document.getElementById(id);
+    const isRole=id==='colRole';
+    sel.innerHTML=(isRole?'<option value="">なし</option>':'')+importHeaders.map((h,i)=>`<option value="${i}">${h||'（列'+(i+1)+'）'}</option>`).join('');
+  });
+  document.getElementById('colName').value=nameIdx>=0?nameIdx:0;
+  document.getElementById('colId').value=idIdx>=0?idIdx:(nameIdx>=0?0:1);
+  if(roleIdx>=0){document.getElementById('colRole').value=roleIdx;document.getElementById('roleFilterWrap').style.display='';}
+  else{document.getElementById('colRole').value='';document.getElementById('roleFilterWrap').style.display='none';}
+
+  document.getElementById('importPreview').style.display='';
+  refreshPreview();
+}
+
+function bestMatch(headers,keywords){
+  for(const kw of keywords){
+    const i=headers.findIndex(h=>h.toLowerCase().replace(/\s/g,'').includes(kw.toLowerCase().replace(/\s/g,'')));
+    if(i>=0)return i;
+  }
+  return -1;
+}
+
+function getFilteredRows(){
+  const ni=+document.getElementById('colName').value;
+  const ii=document.getElementById('colId').value;
+  const ri=document.getElementById('colRole').value;
+  const rf=document.getElementById('roleFilterVal').value;
+  return importRows.filter(row=>{
+    if(ri!==''&&rf==='member'){
+      const role=String(row[+ri]||'').toLowerCase();
+      if(role.includes('owner')||role.includes('所有者')||role.includes('teacher')||role.includes('教師'))return false;
+    }
+    const name=String(row[ni]||'').trim();
+    return name.length>0;
+  });
+}
+
+function refreshPreview(){
+  const ri=document.getElementById('colRole').value;
+  document.getElementById('roleFilterWrap').style.display=ri!==''?'':'none';
+  const ni=+document.getElementById('colName').value;
+  const ii=document.getElementById('colId').value;
+  const rows=getFilteredRows();
+  const tbody=document.getElementById('previewBody');
+  tbody.innerHTML=rows.slice(0,30).map(row=>{
+    const name=String(row[ni]||'').trim();
+    const id=ii!==''?String(row[+ii]||'').trim():'';
+    const role=ri!==''?String(row[+ri]||'').trim():'';
+    return`<tr><td>${name}</td><td>${id||'（自動採番）'}</td><td>${role}</td></tr>`;
+  }).join('')||'<tr><td colspan="3" style="text-align:center;color:var(--text-light);padding:16px">該当データなし</td></tr>';
+  document.getElementById('importCount').textContent=`${rows.length} 名を読み込み予定`;
+}
+
+function doImport(){
+  const ni=+document.getElementById('colName').value;
+  const ii=document.getElementById('colId').value;
+  const rows=getFilteredRows();
+  let added=0,skipped=0;
+  rows.forEach((row,idx)=>{
+    const name=String(row[ni]||'').trim();
+    if(!name)return;
+    let id=ii!==''?String(row[+ii]||'').trim():'';
+    // Use email prefix as ID, or generate one
+    if(!id||id===name) id=name.replace(/\s+/g,'_').slice(0,12)||`ST${String(idx+1).padStart(3,'0')}`;
+    else if(id.includes('@')) id=id.split('@')[0];
+    if(state.students.find(s=>s.id===id||s.name===name)){skipped++;return;}
+    const color=COLORS[state.students.length%COLORS.length];
+    state.students.push({id,name,color});
+    added++;
+  });
+  save();renderManage();renderSessionSelect();
+  cancelImport();
+  toast(`✅ ${added}名を追加しました${skipped?`（${skipped}名は重複のためスキップ）`:''}`);
+  const cur=document.getElementById('sessionSelect').value;
+  if(cur){renderAttendanceList(cur);updateStats(cur);}
+}
+
+function cancelImport(){
+  document.getElementById('importPreview').style.display='none';
+  document.getElementById('importFile').value='';
+  importRows=[];importHeaders=[];
+}
+
+/* ── Session ── */
+function renderSessionSelect(){
+  const sel=document.getElementById('sessionSelect');
+  const es=document.getElementById('exportSession');
+  const cur=sel.value;
+  sel.innerHTML=state.sessions.map(s=>`<option value="${s.id}">${s.name}（${s.date||'日付未設定'}）</option>`).join('')||'<option value="">授業回なし</option>';
+  if(cur&&state.sessions.find(s=>s.id===cur))sel.value=cur;
+  es.innerHTML=sel.innerHTML;
+}
 function loadSession(){const sid=document.getElementById('sessionSelect').value;if(!sid)return;const sess=state.sessions.find(s=>s.id===sid);document.getElementById('sessionDate').value=sess?.date||'';if(!state.records[sid])state.records[sid]={};renderAttendanceList(sid);updateStats(sid);}
 function saveSessionDate(){const sid=document.getElementById('sessionSelect').value;const date=document.getElementById('sessionDate').value;const sess=state.sessions.find(s=>s.id===sid);if(sess){sess.date=date;save();renderSessionSelect();toast('日付を保存しました');}}
-function renderAttendanceList(sid){const el=document.getElementById('attendanceList');if(!state.students.length){el.innerHTML='<div class="empty">学生を登録してください（管理タブ）</div>';return;}el.innerHTML=state.students.map(st=>{const rec=(state.records[sid]||{})[st.id]||{status:null,note:''};return`<div class="student-row" id="row-${sid}-${st.id}"><div class="student-avatar" style="background:${st.color}">${st.name.charAt(0)}</div><div style="flex:1;min-width:0"><div class="student-name">${st.name}</div><div class="student-id">${st.id}</div></div><div class="status-buttons">${['present','absent','late','excused'].map(s=>`<button class="status-btn ${rec.status===s?'selected-'+s:''}" onclick="setStatus('${sid}','${st.id}','${s}',this)">${statusLabels[s]}</button>`).join('')}</div><input class="note-input" type="text" placeholder="備考" value="${rec.note||''}" oninput="setNote('${sid}','${st.id}',this.value)"/></div>`;}).join('');}
-function setStatus(sid,studentId,status,btn){if(!state.records[sid])state.records[sid]={};const rec=state.records[sid][studentId]||{status:null,note:''};rec.status=rec.status===status?null:status;state.records[sid][studentId]=rec;const row=document.getElementById(`row-${sid}-${studentId}`);['present','absent','late','excused'].forEach((s,i)=>{const b=row.querySelectorAll('.status-btn')[i];b.className='status-btn'+(rec.status===s?' selected-'+s:'');});save();updateStats(sid);}
+
+/* ── Attendance ── */
+function renderAttendanceList(sid){
+  const el=document.getElementById('attendanceList');
+  if(!state.students.length){el.innerHTML='<div class="empty">管理タブで学生を登録してください</div>';return;}
+  el.innerHTML=state.students.map(st=>{
+    const rec=(state.records[sid]||{})[st.id]||{status:null,note:''};
+    return`<div class="student-row" id="row-${sid}-${st.id}"><div class="student-avatar" style="background:${st.color}">${st.name.charAt(0)}</div><div style="flex:1;min-width:0"><div class="student-name">${st.name}</div><div class="student-id">${st.id}</div></div><div class="status-buttons">${['present','absent','late','excused'].map(s=>`<button class="status-btn ${rec.status===s?'selected-'+s:''}" onclick="setStatus('${sid}','${st.id}','${s}',this)">${statusLabels[s]}</button>`).join('')}</div><input class="note-input" type="text" placeholder="備考" value="${rec.note||''}" oninput="setNote('${sid}','${st.id}',this.value)"/></div>`;
+  }).join('');
+}
+function setStatus(sid,studentId,status,btn){if(!state.records[sid])state.records[sid]={};const rec=state.records[sid][studentId]||{status:null,note:''};rec.status=rec.status===status?null:status;state.records[sid][studentId]=rec;const row=document.getElementById(`row-${sid}-${studentId}`);['present','absent','late','excused'].forEach((s,i)=>{row.querySelectorAll('.status-btn')[i].className='status-btn'+(rec.status===s?' selected-'+s:'');});save();updateStats(sid);}
 function setNote(sid,studentId,note){if(!state.records[sid])state.records[sid]={};if(!state.records[sid][studentId])state.records[sid][studentId]={status:null,note:''};state.records[sid][studentId].note=note;save();}
 function bulkSet(status){const sid=document.getElementById('sessionSelect').value;if(!sid)return;if(!state.records[sid])state.records[sid]={};state.students.forEach(st=>{if(!state.records[sid][st.id])state.records[sid][st.id]={status:null,note:''};state.records[sid][st.id].status=status;});save();renderAttendanceList(sid);updateStats(sid);toast(status?`全員を「${statusLabels[status]}」に設定しました`:'リセットしました');}
 function updateStats(sid){const recs=state.records[sid]||{};let p=0,a=0,l=0,e=0;state.students.forEach(st=>{const s=(recs[st.id]||{}).status;if(s==='present')p++;else if(s==='absent')a++;else if(s==='late')l++;else if(s==='excused')e++;});document.getElementById('st-total').textContent=state.students.length;document.getElementById('st-present').textContent=p;document.getElementById('st-absent').textContent=a;document.getElementById('st-late').textContent=l;document.getElementById('st-excused').textContent=e;}
-function renderOverview(){const tbody=document.getElementById('overviewBody');tbody.innerHTML=state.students.map(st=>{let p=0,a=0,l=0,e=0,u=0;state.sessions.forEach(sess=>{const s=((state.records[sess.id]||{})[st.id]||{}).status;if(s==='present')p++;else if(s==='absent')a++;else if(s==='late')l++;else if(s==='excused')e++;else u++;});const rate=Math.round((p+l)/Math.max(p+a+l+e,1)*100);return`<tr><td>${st.id}</td><td><span style="display:inline-flex;align-items:center;gap:7px"><span style="width:24px;height:24px;border-radius:50%;background:${st.color};display:inline-flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700">${st.name.charAt(0)}</span>${st.name}</span></td><td><span class="badge badge-present">${p}</span></td><td><span class="badge badge-absent">${a}</span></td><td><span class="badge badge-late">${l}</span></td><td><span class="badge badge-excused">${e}</span></td><td>${u}</td><td><div class="rate-bar-wrap"><div class="rate-bar"><div class="rate-fill" style="width:${rate}%"></div></div><span style="font-size:12px;font-weight:600;color:var(--present);min-width:34px">${rate}%</span></div></td></tr>`;}).join('')||'<tr><td colspan="8" class="empty">学生が登録されていません</td></tr>';const head=document.getElementById('sessionTableHead');const mbody=document.getElementById('sessionTableBody');head.innerHTML='<th>氏名</th>'+state.sessions.map(s=>`<th>${s.name}<br><span style="font-weight:400;font-size:11px">${s.date||''}</span></th>`).join('');mbody.innerHTML=state.students.map(st=>{const cells=state.sessions.map(sess=>{const s=((state.records[sess.id]||{})[st.id]||{}).status;return`<td><span class="badge ${s?'badge-'+s:'badge-unset'}">${s?statusLabels[s]:'―'}</span></td>`;}).join('');return`<tr><td>${st.name}</td>${cells}</tr>`;}).join('')||`<tr><td colspan="${state.sessions.length+1}" class="empty">データなし</td></tr>`;}
+
+/* ── Overview ── */
+function renderOverview(){
+  document.getElementById('overviewBody').innerHTML=state.students.map(st=>{let p=0,a=0,l=0,e=0,u=0;state.sessions.forEach(sess=>{const s=((state.records[sess.id]||{})[st.id]||{}).status;if(s==='present')p++;else if(s==='absent')a++;else if(s==='late')l++;else if(s==='excused')e++;else u++;});const rate=Math.round((p+l)/Math.max(p+a+l+e,1)*100);return`<tr><td>${st.id}</td><td><span style="display:inline-flex;align-items:center;gap:7px"><span style="width:24px;height:24px;border-radius:50%;background:${st.color};display:inline-flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700">${st.name.charAt(0)}</span>${st.name}</span></td><td><span class="badge badge-present">${p}</span></td><td><span class="badge badge-absent">${a}</span></td><td><span class="badge badge-late">${l}</span></td><td><span class="badge badge-excused">${e}</span></td><td>${u}</td><td><div class="rate-bar-wrap"><div class="rate-bar"><div class="rate-fill" style="width:${rate}%"></div></div><span style="font-size:12px;font-weight:600;color:var(--present);min-width:34px">${rate}%</span></div></td></tr>`;}).join('')||'<tr><td colspan="8" class="empty">学生が登録されていません</td></tr>';
+  const head=document.getElementById('sessionTableHead');const mbody=document.getElementById('sessionTableBody');
+  head.innerHTML='<th>氏名</th>'+state.sessions.map(s=>`<th>${s.name}<br><span style="font-weight:400;font-size:11px">${s.date||''}</span></th>`).join('');
+  mbody.innerHTML=state.students.map(st=>`<tr><td>${st.name}</td>${state.sessions.map(sess=>{const s=((state.records[sess.id]||{})[st.id]||{}).status;return`<td><span class="badge ${s?'badge-'+s:'badge-unset'}">${s?statusLabels[s]:'―'}</span></td>`;}).join('')}</tr>`).join('')||`<tr><td colspan="${state.sessions.length+1}" class="empty">データなし</td></tr>`;
+}
+
+/* ── Report ── */
 function toggleExportSession(){document.getElementById('exportSessionWrap').style.display=document.getElementById('exportTarget').value==='session'?'':'none';}
 function renderReport(){renderSessionSelect();const el=document.getElementById('reportSummary');let html='<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:var(--teams-purple-light)"><th style="padding:8px 12px;text-align:left">授業回</th><th style="padding:8px 12px;text-align:center">出席</th><th style="padding:8px 12px;text-align:center">欠席</th><th style="padding:8px 12px;text-align:center">遅刻</th><th style="padding:8px 12px;text-align:center">公欠</th><th style="padding:8px 12px;text-align:center">出席率</th></tr></thead><tbody>';state.sessions.forEach(sess=>{const recs=state.records[sess.id]||{};let p=0,a=0,l=0,e=0;state.students.forEach(st=>{const s=(recs[st.id]||{}).status;if(s==='present')p++;else if(s==='absent')a++;else if(s==='late')l++;else if(s==='excused')e++;});const rate=state.students.length>0?Math.round((p+l)/Math.max(p+a+l+e,1)*100):0;html+=`<tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-weight:500">${sess.name}<br><span style="font-size:11px;color:var(--text-light)">${sess.date||''}</span></td><td style="padding:8px 12px;text-align:center"><span class="badge badge-present">${p}</span></td><td style="padding:8px 12px;text-align:center"><span class="badge badge-absent">${a}</span></td><td style="padding:8px 12px;text-align:center"><span class="badge badge-late">${l}</span></td><td style="padding:8px 12px;text-align:center"><span class="badge badge-excused">${e}</span></td><td style="padding:8px 12px;text-align:center;font-weight:600;color:var(--present)">${rate}%</td></tr>`;});html+='</tbody></table>';if(!state.sessions.length)html='<div class="empty">授業回が登録されていません</div>';el.innerHTML=html;}
 function exportCSV(){const target=document.getElementById('exportTarget').value;let csv='',filename='';if(target==='session'){const sid=document.getElementById('exportSession').value;const sess=state.sessions.find(s=>s.id===sid);csv='学籍番号,氏名,出欠状況,備考\n';state.students.forEach(st=>{const rec=((state.records[sid]||{})[st.id])||{status:'',note:''};csv+=`"${st.id}","${st.name}","${statusLabels[rec.status]||'未入力'}","${rec.note||''}"\n`;});filename=`出欠_${sess?.name||sid}_${sess?.date||''}.csv`;}else if(target==='matrix'){csv='学籍番号,氏名,'+state.sessions.map(s=>s.name).join(',')+'\n';state.students.forEach(st=>{const row=[st.id,st.name,...state.sessions.map(sess=>{const s=((state.records[sess.id]||{})[st.id]||{}).status;return statusLabels[s]||'未入力';})];csv+=row.map(v=>`"${v}"`).join(',')+'\n';});filename=`出欠マトリクス_${today()}.csv`;}else{csv='学籍番号,氏名,出席回数,欠席回数,遅刻回数,公欠回数,出席率\n';state.students.forEach(st=>{let p=0,a=0,l=0,e=0;state.sessions.forEach(sess=>{const s=((state.records[sess.id]||{})[st.id]||{}).status;if(s==='present')p++;else if(s==='absent')a++;else if(s==='late')l++;else if(s==='excused')e++;});const rate=Math.round((p+l)/Math.max(p+a+l+e,1)*100);csv+=`"${st.id}","${st.name}",${p},${a},${l},${e},${rate}%\n`;});filename=`出欠サマリー_${today()}.csv`;}const bom='\uFEFF';const blob=new Blob([bom+csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url);toast(`${filename} をダウンロードしました`);}
 function today(){return new Date().toISOString().slice(0,10);}
-function renderManage(){const el=document.getElementById('studentManageList');el.innerHTML=state.students.length?state.students.map((st,i)=>`<div class="student-manage-row"><div class="student-avatar" style="background:${st.color};width:32px;height:32px;font-size:13px">${st.name.charAt(0)}</div><span style="font-size:14px;font-weight:500;flex:1">${st.name}</span><span style="font-size:12px;color:var(--text-light)">${st.id}</span><button class="btn btn-sm btn-danger" onclick="removeStudent(${i})">削除</button></div>`).join(''):'<div class="empty" style="padding:20px">学生が登録されていません</div>';const sl=document.getElementById('sessionManageList');const sid=document.getElementById('sessionSelect').value;sl.innerHTML=state.sessions.map((s,i)=>`<div class="session-item ${s.id===sid?'active-session':''}"><span class="s-name">${s.name}</span><span class="s-date">${s.date||'日付未設定'}</span><span class="s-count">${countRecords(s.id)} / ${state.students.length} 入力済</span><button class="btn btn-sm btn-danger" onclick="removeSession(${i})">削除</button></div>`).join('')||'<div class="empty" style="padding:16px">授業回が登録されていません</div>';}
+
+/* ── Manage ── */
+function renderManage(){
+  const el=document.getElementById('studentManageList');
+  el.innerHTML=state.students.length?state.students.map((st,i)=>`<div class="student-manage-row"><div class="student-avatar" style="background:${st.color};width:32px;height:32px;font-size:13px">${st.name.charAt(0)}</div><span style="font-size:14px;font-weight:500;flex:1">${st.name}</span><span style="font-size:12px;color:var(--text-light)">${st.id}</span><button class="btn btn-sm btn-danger" onclick="removeStudent(${i})">削除</button></div>`).join(''):'<div class="empty" style="padding:20px">学生が登録されていません</div>';
+  const sl=document.getElementById('sessionManageList');const sid=document.getElementById('sessionSelect').value;
+  sl.innerHTML=state.sessions.map((s,i)=>`<div class="session-item ${s.id===sid?'active-session':''}"><span class="s-name">${s.name}</span><span class="s-date">${s.date||'日付未設定'}</span><span class="s-count">${countRecords(s.id)} / ${state.students.length} 入力済</span><button class="btn btn-sm btn-danger" onclick="removeSession(${i})">削除</button></div>`).join('')||'<div class="empty" style="padding:16px">授業回が登録されていません</div>';
+}
 function countRecords(sid){return Object.values(state.records[sid]||{}).filter(r=>r.status).length;}
 function addStudent(){const id=document.getElementById('newStudentId').value.trim();const name=document.getElementById('newStudentName').value.trim();if(!id||!name){toast('学籍番号と氏名を入力してください');return;}if(state.students.find(s=>s.id===id)){toast('この学籍番号はすでに登録済みです');return;}const color=COLORS[state.students.length%COLORS.length];state.students.push({id,name,color});document.getElementById('newStudentId').value='';document.getElementById('newStudentName').value='';save();renderManage();renderSessionSelect();toast(`${name} を追加しました`);}
 function removeStudent(i){const st=state.students[i];if(!confirm(`「${st.name}」を削除しますか？`))return;state.students.splice(i,1);Object.keys(state.records).forEach(sid=>delete(state.records[sid]||{})[st.id]);save();renderManage();renderSessionSelect();const cur=document.getElementById('sessionSelect').value;if(cur){renderAttendanceList(cur);updateStats(cur);}toast(`${st.name} を削除しました`);}
 function addSession(){const name=document.getElementById('newSessionName').value.trim();const date=document.getElementById('newSessionDate').value;if(!name){toast('授業回名を入力してください');return;}const id='s'+Date.now();state.sessions.push({id,name,date});state.records[id]={};document.getElementById('newSessionName').value='';document.getElementById('newSessionDate').value='';save();renderManage();renderSessionSelect();renderReport();toast(`「${name}」を追加しました`);}
 function addSessionDialog(){const name=prompt('授業回名を入力してください（例：第4回）');if(!name)return;const date=prompt('日付を入力してください（YYYY-MM-DD）',today());const id='s'+Date.now();state.sessions.push({id,name,date:date||''});state.records[id]={};save();renderSessionSelect();document.getElementById('sessionSelect').value=id;loadSession();toast(`「${name}」を作成しました`);}
 function removeSession(i){const sess=state.sessions[i];if(!confirm(`「${sess.name}」を削除しますか？`))return;state.sessions.splice(i,1);delete state.records[sess.id];save();renderManage();renderSessionSelect();const first=state.sessions[0];if(first){document.getElementById('sessionSelect').value=first.id;loadSession();}else{document.getElementById('attendanceList').innerHTML='<div class="empty">授業回を選択してください</div>';updateStats('');}toast(`「${sess.name}」を削除しました`);}
+function clearStudents(){if(!confirm('学生データをすべて削除しますか？出欠記録も削除されます。'))return;state.students=[];state.records={};save();init();toast('学生データをリセットしました');}
 function resetAll(){if(!confirm('すべてのデータを削除しますか？この操作は元に戻せません。'))return;state={students:[],sessions:[],records:{}};save();init();toast('全データをリセットしました');}
 
-// Boot: load persisted data or sample
-load();
-if(!state.students.length && !state.sessions.length) loadSample();
-else init();
+/* ── Drag & drop on import box ── */
+const importBox=document.getElementById('importBox');
+importBox.addEventListener('dragover',e=>{e.preventDefault();importBox.style.background='#d0d0ec';});
+importBox.addEventListener('dragleave',()=>{importBox.style.background='';});
+importBox.addEventListener('drop',e=>{e.preventDefault();importBox.style.background='';const f=e.dataTransfer.files[0];if(f){const dt=new DataTransfer();dt.items.add(f);document.getElementById('importFile').files=dt.files;handleImportFile({target:{files:dt.files}});}});
+
+/* ── Boot ── */
+loadState();
+if(!state.students.length&&!state.sessions.length){
+  state.sessions=[{id:'s1',name:'第1回',date:today()}];
+  state.records={s1:{}};
+  save();
+}
+init();
 </script>
 </body>
 </html>
