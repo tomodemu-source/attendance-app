@@ -120,11 +120,27 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
     <div class="login-card">
       <div style="font-size:36px;margin-bottom:12px">📋</div>
       <h2>出欠管理アプリ</h2>
-      <p>仁愛大学のMicrosoftアカウントでサインインしてください。</p>
-      <button class="btn btn-ms" onclick="doLogin()">
-        <svg viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="9" height="9" fill="#F25022"/><rect x="11" y="1" width="9" height="9" fill="#7FBA00"/><rect x="1" y="11" width="9" height="9" fill="#00A4EF"/><rect x="11" y="11" width="9" height="9" fill="#FFB900"/></svg>
-        Microsoftでサインイン
-      </button>
+      <div id="login-form">
+        <p style="font-size:14px;color:var(--tl);margin-bottom:16px;line-height:1.6">メールアドレスとパスワードでサインインしてください。</p>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+          <input type="email" id="auth-email" placeholder="メールアドレス" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--border);border-radius:var(--r)">
+          <input type="password" id="auth-pass" placeholder="パスワード" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--border);border-radius:var(--r)" onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
+        <p id="auth-err" style="color:var(--absent);font-size:13px;margin-bottom:10px;display:none"></p>
+        <button class="btn bp" style="width:100%;justify-content:center;padding:11px" onclick="doLogin()">サインイン</button>
+        <p style="text-align:center;margin-top:14px;font-size:13px;color:var(--tl)">初めての方は <a href="#" onclick="showRegister();return false;" style="color:var(--tp)">新規登録</a></p>
+      </div>
+      <div id="register-form" style="display:none">
+        <p style="font-size:14px;color:var(--tl);margin-bottom:16px;line-height:1.6">新規アカウントを作成します。</p>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+          <input type="text" id="reg-name" placeholder="氏名" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--border);border-radius:var(--r)">
+          <input type="email" id="reg-email" placeholder="メールアドレス" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--border);border-radius:var(--r)">
+          <input type="password" id="reg-pass" placeholder="パスワード（6文字以上）" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--border);border-radius:var(--r)">
+        </div>
+        <p id="reg-err" style="color:var(--absent);font-size:13px;margin-bottom:10px;display:none"></p>
+        <button class="btn bp" style="width:100%;justify-content:center;padding:11px" onclick="doRegister()">登録してサインイン</button>
+        <p style="text-align:center;margin-top:14px;font-size:13px;color:var(--tl)"><a href="#" onclick="showLogin();return false;" style="color:var(--tp)">← ログインに戻る</a></p>
+      </div>
     </div>
   </div>
 </div>
@@ -244,7 +260,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, OAuthProvider, signInWithRedirect, getRedirectResult, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { getFirestore, collection, doc, addDoc, getDocs, setDoc, deleteDoc, query, where } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 // ══ CONFIG ══════════════════════════════════════════
@@ -266,10 +282,6 @@ const fbApp = initializeApp(CFG.firebase);
 const auth  = getAuth(fbApp);
 const db    = getFirestore(fbApp);
 
-const msProvider = new OAuthProvider('microsoft.com');
-msProvider.setCustomParameters({ tenant: CFG.tenantId, prompt: 'select_account' });
-// User.Read不要（Firestoreを使うためGraph APIは不要）
-
 // ══ STATE ═══════════════════════════════════════════
 const COLORS = ['#6264A7','#0078D4','#038387','#107C10','#E8720C','#C239B3','#8764B8','#00B4D2'];
 const SL = { present:'出席', absent:'欠席', late:'遅刻', excused:'公欠' };
@@ -285,7 +297,55 @@ function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.class
 function toast(m){ const e=document.getElementById('toast'); e.textContent=m; e.classList.add('on'); clearTimeout(tTimer); tTimer=setTimeout(()=>e.classList.remove('on'),2400); }
 
 // ══ AUTH ════════════════════════════════════════════
-window.doLogin = async () => { await signInWithRedirect(auth, msProvider); };
+window.showRegister = () => {
+  document.getElementById('login-form').style.display='none';
+  document.getElementById('register-form').style.display='';
+  document.getElementById('auth-err').style.display='none';
+};
+window.showLogin = () => {
+  document.getElementById('register-form').style.display='none';
+  document.getElementById('login-form').style.display='';
+  document.getElementById('reg-err').style.display='none';
+};
+
+function showAuthErr(id, msg){
+  const el=document.getElementById(id);
+  el.textContent=msg; el.style.display='block';
+}
+
+window.doLogin = async () => {
+  const email = document.getElementById('auth-email').value.trim();
+  const pass  = document.getElementById('auth-pass').value;
+  if(!email||!pass){ showAuthErr('auth-err','メールアドレスとパスワードを入力してください'); return; }
+  try{
+    document.getElementById('auth-err').style.display='none';
+    await signInWithEmailAndPassword(auth, email, pass);
+  }catch(e){
+    const msg = e.code==='auth/invalid-credential'||e.code==='auth/wrong-password'||e.code==='auth/user-not-found'
+      ? 'メールアドレスまたはパスワードが間違っています'
+      : e.code==='auth/invalid-email' ? 'メールアドレスの形式が正しくありません'
+      : 'エラー: '+e.message;
+    showAuthErr('auth-err', msg);
+  }
+};
+
+window.doRegister = async () => {
+  const name  = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass  = document.getElementById('reg-pass').value;
+  if(!name||!email||!pass){ showAuthErr('reg-err','すべての項目を入力してください'); return; }
+  if(pass.length<6){ showAuthErr('reg-err','パスワードは6文字以上で入力してください'); return; }
+  try{
+    document.getElementById('reg-err').style.display='none';
+    const cred = await createUserWithEmailAndPassword(auth, email, pass);
+    await updateProfile(cred.user, { displayName: name });
+  }catch(e){
+    const msg = e.code==='auth/email-already-in-use' ? 'このメールアドレスはすでに登録されています'
+      : e.code==='auth/invalid-email' ? 'メールアドレスの形式が正しくありません'
+      : 'エラー: '+e.message;
+    showAuthErr('reg-err', msg);
+  }
+};
 
 // ══ FIRESTORE ═══════════════════════════════════════
 const fsGetAll = async (col) => {
@@ -352,18 +412,13 @@ async function bootApp(user){
 }
 
 // Auth state
-let _booted = false;
 onAuthStateChanged(auth, async (user) => {
-  if(_booted) return;
-  _booted = true;
   try{
-    const result = await getRedirectResult(auth);
-    const activeUser = result?.user || user;
-    if(activeUser){ await bootApp(activeUser); }
+    if(user){ await bootApp(user); }
     else{ showScreen('s-login'); }
   }catch(e){
     console.error(e);
-    setMsg('認証エラー: '+e.message);
+    setMsg('エラー: '+e.message);
     showScreen('s-login');
   }
 });
