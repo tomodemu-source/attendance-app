@@ -3,410 +3,745 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>出欠管理 | Attendance Manager</title>
+<title>出欠管理</title>
 <script src="https://res.cdn.office.net/teams-js/2.22.0/js/MicrosoftTeams.min.js"></script>
+<script src="https://alcdn.msauth.net/browser/3.1.0/js/msal-browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-  :root {
-    color-scheme: light;
-    --tp:#6264A7;--tpd:#464775;--tpl:#E8E8F0;
-    --present:#107C10;--present-bg:#DFF6DD;
-    --absent:#C50F1F;--absent-bg:#FDE7E9;
-    --late:#D67D00;--late-bg:#FFF4CE;
-    --excused:#0078D4;--excused-bg:#EFF6FC;
-    --unset:#616161;--unset-bg:#F3F2F1;
-    --border:#E1DFDD;--bg:#F5F5F5;--card:#fff;
-    --text:#201F1E;--tl:#605E5C;
-    --r:6px;--sh:0 2px 8px rgba(0,0,0,.08);
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-  .hdr{background:var(--tp);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 6px rgba(0,0,0,.2)}
-  .hdr h1{font-size:18px;font-weight:600}.hdr small{font-size:12px;opacity:.85;display:block;margin-top:2px}
-  .tabs{background:#fff;border-bottom:2px solid var(--border);display:flex;padding:0 20px}
-  .tb{padding:12px 20px;border:none;background:none;cursor:pointer;font-size:14px;font-weight:500;color:var(--tl);border-bottom:3px solid transparent;margin-bottom:-2px;transition:.15s;white-space:nowrap}
-  .tb:hover{color:var(--tp)}.tb.on{color:var(--tp);border-bottom-color:var(--tp)}
-  .main{padding:20px;max-width:1100px;margin:0 auto}
-  .pnl{display:none}.pnl.on{display:block}
-  .card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);border:1px solid var(--border);padding:20px;margin-bottom:16px}
-  .ct{font-size:15px;font-weight:600;color:var(--tpd);margin-bottom:14px;display:flex;align-items:center;gap:8px}
-  .sbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-  .sbar label{font-size:13px;color:var(--tl);font-weight:500}
-  select,input[type=text],input[type=date]{padding:7px 10px;border:1px solid var(--border);border-radius:var(--r);font-size:14px;color:var(--text);background:#fff;outline:none;transition:.15s}
-  select:focus,input:focus{border-color:var(--tp)}select{min-width:160px}
-  .btn{padding:7px 16px;border-radius:var(--r);border:none;cursor:pointer;font-size:13px;font-weight:500;transition:.15s;display:inline-flex;align-items:center;gap:6px}
-  .btn:hover{opacity:.85}
-  .bp{background:var(--tp);color:#fff}.bs{background:var(--tpl);color:var(--tpd)}
-  .bd{background:var(--absent-bg);color:var(--absent)}.bg2{background:var(--present-bg);color:var(--present)}
-  .bsm{padding:4px 10px;font-size:12px}
-  .barm{background:#C50F1F;color:#fff}
-  /* Teams button */
-  .btn-teams{background:#464775;color:#fff;font-weight:600}
-  .btn-teams:hover{background:#5b5ea6}
-  .btn-teams svg{width:16px;height:16px;flex-shrink:0}
-  .teams-note{font-size:12px;color:var(--tl);margin-top:8px;padding:8px 10px;background:#f9f9fb;border-radius:var(--r);border:1px solid var(--border)}
-  .srow{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:16px}
-  .sc{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;text-align:center}
-  .sn{font-size:26px;font-weight:700}.sl{font-size:11px;color:var(--tl);margin-top:4px}
-  .sc.sp .sn{color:var(--present)}.sc.sa .sn{color:var(--absent)}.sc.sl2 .sn{color:var(--late)}.sc.se .sn{color:var(--excused)}.sc.st .sn{color:var(--tp)}
-  .alist{display:flex;flex-direction:column;gap:8px}
-  .arow{display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r);background:#fff}
-  .av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
-  .an{flex:1;font-size:14px;font-weight:500;min-width:100px}.aid{font-size:11px;color:var(--tl)}
-  .sbtns{display:flex;gap:6px;flex-wrap:wrap}
-  .sbtn{padding:5px 12px;border-radius:20px;border:1.5px solid transparent;cursor:pointer;font-size:12px;font-weight:500;transition:.15s;background:var(--unset-bg);color:var(--unset)}
-  .sbtn.sp{background:var(--present-bg);color:var(--present);border-color:var(--present)}
-  .sbtn.sa{background:var(--absent-bg);color:var(--absent);border-color:var(--absent)}
-  .sbtn.sl{background:var(--late-bg);color:var(--late);border-color:var(--late)}
-  .sbtn.se{background:var(--excused-bg);color:var(--excused);border-color:var(--excused)}
-  .ni{padding:4px 8px;font-size:12px;width:120px;border:1px solid var(--border);border-radius:var(--r)}
-  .bbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
-  .bbar span{font-size:12px;color:var(--tl)}
-  .tw{overflow-x:auto}
-  table{width:100%;border-collapse:collapse;font-size:13px}
-  thead tr{background:var(--tpl)}
-  th{padding:10px 12px;text-align:left;font-weight:600;color:var(--tpd);white-space:nowrap;border-bottom:2px solid var(--border)}
-  td{padding:9px 12px;border-bottom:1px solid var(--border)}
-  tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
-  .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
-  .bp2{background:var(--present-bg);color:var(--present)}.ba2{background:var(--absent-bg);color:var(--absent)}
-  .bl2{background:var(--late-bg);color:var(--late)}.be2{background:var(--excused-bg);color:var(--excused)}.bu2{background:var(--unset-bg);color:var(--unset)}
-  .rbw{display:flex;align-items:center;gap:6px}
-  .rb{flex:1;height:6px;background:var(--border);border-radius:3px;min-width:60px}
-  .rf{height:100%;border-radius:3px;background:var(--present)}
-  .smrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--border)}
-  .smrow:last-child{border-bottom:none}
-  .af{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
-  .af .fld{display:flex;flex-direction:column;gap:4px}
-  .af label{font-size:11px;color:var(--tl);font-weight:500}
-  .af input{width:140px}
-  .slist{display:flex;flex-direction:column;gap:6px}
-  .si{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--r);background:#fff}
-  .si .sn2{flex:1;font-size:14px;font-weight:500}.si .sd{font-size:12px;color:var(--tl)}.si .sc2{font-size:12px;color:var(--tp);font-weight:600}
-  .asi{border-color:var(--tp)!important;background:var(--tpl)!important}
-  .rc{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
-  .empty{text-align:center;padding:40px;color:var(--tl);font-size:14px}
-  .ibox{border:2px dashed var(--tp);border-radius:var(--r);padding:28px 20px;text-align:center;background:var(--tpl);cursor:pointer;transition:.15s}
-  .ibox:hover{background:#d8d8ec}.ibox input[type=file]{display:none}
-  .ibox .iico{font-size:36px;margin-bottom:8px}.ibox p{color:var(--tpd);font-size:14px;font-weight:500}.ibox small{color:var(--tl);font-size:12px}
-  .iprev{margin-top:16px}.iprev h4{font-size:13px;font-weight:600;color:var(--tpd);margin-bottom:10px}
-  .cmap{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px;padding:12px;background:#f9f9fb;border-radius:var(--r);border:1px solid var(--border)}
-  .cmap .fld{display:flex;flex-direction:column;gap:4px}
-  .cmap label{font-size:11px;color:var(--tl);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
-  .cmap select{min-width:140px;font-size:13px}
-  .ptw{max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r)}
-  .pt{width:100%;border-collapse:collapse;font-size:12px}
-  .pt th{background:var(--tpl);padding:6px 10px;text-align:left;font-weight:600;color:var(--tpd);position:sticky;top:0}
-  .pt td{padding:5px 10px;border-bottom:1px solid var(--border)}
-  .ia{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
-  .ic{font-size:13px;color:var(--tl)}
-  .guide{background:var(--tpl);border-radius:var(--r);padding:14px 16px;margin-bottom:16px;border-left:3px solid var(--tp)}
-  .guide p{font-size:13px;color:var(--tpd);font-weight:600;margin-bottom:8px}
-  .guide ol{padding-left:18px}.guide li{font-size:13px;color:var(--text);line-height:1.8}
-  .guide code{background:#fff;padding:1px 5px;border-radius:3px;font-size:12px;color:var(--tpd)}
-  .del-wrap{display:inline-flex;align-items:center;gap:4px}
-  .confirm-hint{font-size:11px;color:var(--absent);display:none;white-space:nowrap}
-  .del-wrap.armed .confirm-hint{display:inline}
-  /* section divider */
-  .method-divider{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--tl);font-size:12px}
-  .method-divider::before,.method-divider::after{content:'';flex:1;height:1px;background:var(--border)}
-  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#323130;color:#fff;padding:10px 20px;border-radius:6px;font-size:13px;opacity:0;pointer-events:none;transition:.3s;z-index:1000;white-space:nowrap}
-  #toast.on{opacity:1}
+:root{color-scheme:light;--tp:#6264A7;--tpd:#464775;--tpl:#E8E8F0;--present:#107C10;--present-bg:#DFF6DD;--absent:#C50F1F;--absent-bg:#FDE7E9;--late:#D67D00;--late-bg:#FFF4CE;--excused:#0078D4;--excused-bg:#EFF6FC;--unset:#616161;--unset-bg:#F3F2F1;--border:#E1DFDD;--bg:#F5F5F5;--card:#fff;--text:#201F1E;--tl:#605E5C;--r:6px;--sh:0 2px 8px rgba(0,0,0,.08)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+/* header */
+.hdr{background:var(--tp);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.hdr h1{font-size:18px;font-weight:600}.hdr small{font-size:12px;opacity:.85;display:block;margin-top:2px}
+.user-chip{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:13px;background:rgba(255,255,255,.15);padding:5px 12px;border-radius:20px}
+.user-chip .role-badge{font-size:10px;background:rgba(255,255,255,.25);padding:2px 7px;border-radius:10px;font-weight:600}
+/* tabs */
+.tabs{background:#fff;border-bottom:2px solid var(--border);display:flex;padding:0 20px}
+.tb{padding:12px 20px;border:none;background:none;cursor:pointer;font-size:14px;font-weight:500;color:var(--tl);border-bottom:3px solid transparent;margin-bottom:-2px;transition:.15s;white-space:nowrap}
+.tb:hover{color:var(--tp)}.tb.on{color:var(--tp);border-bottom-color:var(--tp)}
+/* layout */
+.main{padding:20px;max-width:1100px;margin:0 auto}
+.pnl{display:none}.pnl.on{display:block}
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);border:1px solid var(--border);padding:20px;margin-bottom:16px}
+.ct{font-size:15px;font-weight:600;color:var(--tpd);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+/* forms */
+.sbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.sbar label{font-size:13px;color:var(--tl);font-weight:500}
+select,input[type=text],input[type=date]{padding:7px 10px;border:1px solid var(--border);border-radius:var(--r);font-size:14px;color:var(--text);background:#fff;outline:none;transition:.15s}
+select:focus,input:focus{border-color:var(--tp)}select{min-width:160px}
+/* buttons */
+.btn{padding:7px 16px;border-radius:var(--r);border:none;cursor:pointer;font-size:13px;font-weight:500;transition:.15s;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{opacity:.85}.btn:disabled{opacity:.4;cursor:not-allowed}
+.bp{background:var(--tp);color:#fff}.bs{background:var(--tpl);color:var(--tpd)}
+.bd{background:var(--absent-bg);color:var(--absent)}.bg2{background:var(--present-bg);color:var(--present)}
+.bsm{padding:4px 10px;font-size:12px}.barm{background:#C50F1F;color:#fff}
+/* stats */
+.srow{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:16px}
+.sc{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;text-align:center}
+.sn{font-size:26px;font-weight:700}.sl{font-size:11px;color:var(--tl);margin-top:4px}
+.sc.sp .sn{color:var(--present)}.sc.sa .sn{color:var(--absent)}.sc.sl2 .sn{color:var(--late)}.sc.se .sn{color:var(--excused)}.sc.st .sn{color:var(--tp)}
+/* attendance list */
+.alist{display:flex;flex-direction:column;gap:8px}
+.arow{display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r);background:#fff;transition:.15s}
+.arow.saving{opacity:.6}
+.av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
+.an{flex:1;font-size:14px;font-weight:500;min-width:100px}.aid{font-size:11px;color:var(--tl)}
+.sbtns{display:flex;gap:6px;flex-wrap:wrap}
+.sbtn{padding:5px 12px;border-radius:20px;border:1.5px solid transparent;cursor:pointer;font-size:12px;font-weight:500;transition:.15s;background:var(--unset-bg);color:var(--unset)}
+.sbtn:disabled{cursor:not-allowed;opacity:.5}
+.sbtn.sp{background:var(--present-bg);color:var(--present);border-color:var(--present)}
+.sbtn.sa{background:var(--absent-bg);color:var(--absent);border-color:var(--absent)}
+.sbtn.sl{background:var(--late-bg);color:var(--late);border-color:var(--late)}
+.sbtn.se{background:var(--excused-bg);color:var(--excused);border-color:var(--excused)}
+.ni{padding:4px 8px;font-size:12px;width:120px;border:1px solid var(--border);border-radius:var(--r)}
+.bbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.bbar span{font-size:12px;color:var(--tl)}
+/* tables */
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead tr{background:var(--tpl)}
+th{padding:10px 12px;text-align:left;font-weight:600;color:var(--tpd);white-space:nowrap;border-bottom:2px solid var(--border)}
+td{padding:9px 12px;border-bottom:1px solid var(--border)}
+tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.bp2{background:var(--present-bg);color:var(--present)}.ba2{background:var(--absent-bg);color:var(--absent)}
+.bl2{background:var(--late-bg);color:var(--late)}.be2{background:var(--excused-bg);color:var(--excused)}.bu2{background:var(--unset-bg);color:var(--unset)}
+.rbw{display:flex;align-items:center;gap:6px}
+.rb{flex:1;height:6px;background:var(--border);border-radius:3px;min-width:60px}
+.rf{height:100%;border-radius:3px;background:var(--present)}
+/* manage */
+.smrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--border)}
+.smrow:last-child{border-bottom:none}
+.af{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.af .fld,.cmap .fld{display:flex;flex-direction:column;gap:4px}
+.af label,.cmap label{font-size:11px;color:var(--tl);font-weight:500}
+.af input{width:140px}
+.slist{display:flex;flex-direction:column;gap:6px}
+.si{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--r);background:#fff}
+.si .sn2{flex:1;font-size:14px;font-weight:500}.si .sd{font-size:12px;color:var(--tl)}.si .sc2{font-size:12px;color:var(--tp);font-weight:600}
+.asi{border-color:var(--tp)!important;background:var(--tpl)!important}
+/* del 2-step */
+.del-wrap{display:inline-flex;align-items:center;gap:4px}
+.confirm-hint{font-size:11px;color:var(--absent);display:none;white-space:nowrap}
+.del-wrap.armed .confirm-hint{display:inline}
+/* report */
+.rc{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+/* import */
+.ibox{border:2px dashed var(--tp);border-radius:var(--r);padding:24px 20px;text-align:center;background:var(--tpl);cursor:pointer;transition:.15s}
+.ibox:hover{background:#d8d8ec}.ibox input[type=file]{display:none}
+.ibox .iico{font-size:32px;margin-bottom:6px}.ibox p{color:var(--tpd);font-size:14px;font-weight:500}.ibox small{color:var(--tl);font-size:12px}
+.iprev{margin-top:12px}.iprev h4{font-size:13px;font-weight:600;color:var(--tpd);margin-bottom:10px}
+.cmap{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;padding:12px;background:#f9f9fb;border-radius:var(--r);border:1px solid var(--border)}
+.cmap label{font-size:11px;color:var(--tl);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+.cmap select{min-width:140px;font-size:13px}
+.ptw{max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r)}
+.pt{width:100%;border-collapse:collapse;font-size:12px}
+.pt th{background:var(--tpl);padding:6px 10px;text-align:left;font-weight:600;color:var(--tpd);position:sticky;top:0}
+.pt td{padding:5px 10px;border-bottom:1px solid var(--border)}
+.ia{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.ic{font-size:13px;color:var(--tl)}
+/* student view */
+.stu-hero{background:linear-gradient(135deg,var(--tp),#5b5ea6);color:#fff;border-radius:var(--r);padding:28px;margin-bottom:20px;display:flex;align-items:center;gap:20px}
+.stu-av{width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;flex-shrink:0}
+.stu-rate{font-size:42px;font-weight:700;margin-bottom:4px}
+.stu-rate-label{font-size:13px;opacity:.85}
+.stu-sess-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--r);background:#fff;margin-bottom:8px}
+.stu-sess-name{flex:1;font-weight:500}
+.stu-sess-date{font-size:12px;color:var(--tl)}
+/* screens */
+.screen{display:none;min-height:100vh}
+.screen.on{display:flex;flex-direction:column}
+.center-box{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;text-align:center}
+.spin{width:40px;height:40px;border:3px solid var(--tpl);border-top-color:var(--tp);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.login-card{background:#fff;border-radius:12px;box-shadow:var(--sh);padding:40px;max-width:400px;width:100%}
+.login-card h2{font-size:22px;color:var(--tpd);margin-bottom:8px}
+.login-card p{font-size:14px;color:var(--tl);margin-bottom:24px;line-height:1.6}
+.btn-ms{background:#0078D4;color:#fff;padding:12px 24px;font-size:15px;font-weight:600;border-radius:6px;width:100%;justify-content:center}
+.btn-ms svg{width:20px;height:20px}
+/* empty */
+.empty{text-align:center;padding:40px;color:var(--tl);font-size:14px}
+/* method divider */
+.mdiv{display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--tl);font-size:12px}
+.mdiv::before,.mdiv::after{content:'';flex:1;height:1px;background:var(--border)}
+/* toast */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#323130;color:#fff;padding:10px 20px;border-radius:6px;font-size:13px;opacity:0;pointer-events:none;transition:.3s;z-index:9999;white-space:nowrap}
+#toast.on{opacity:1}
+/* not-found */
+.not-found{text-align:center;padding:60px 20px}
+.not-found .icon{font-size:48px;margin-bottom:16px}
+.not-found h3{font-size:18px;color:var(--tpd);margin-bottom:8px}
+.not-found p{font-size:14px;color:var(--tl);line-height:1.6}
 </style>
 </head>
 <body>
 
-<div class="hdr">
-  <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="6" fill="white" fill-opacity=".15"/><path d="M7 8h14v2H7V8zm0 5h10v2H7v-2zm0 5h14v2H7v-2z" fill="white"/><circle cx="22" cy="13" r="4" fill="#107C10"/><path d="M20.5 13l1 1 2-2" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-  <div><h1>出欠管理 — Attendance Manager</h1><small>Microsoft Teams 出席管理アプリ</small></div>
-</div>
-
-<div class="tabs">
-  <button class="tb on"  onclick="sw('r',this)">📋 出欠登録</button>
-  <button class="tb"     onclick="sw('o',this)">📊 出席一覧</button>
-  <button class="tb"     onclick="sw('p',this)">📄 レポート</button>
-  <button class="tb"     onclick="sw('m',this)">⚙️ 管理</button>
-</div>
-
-<div class="main">
-
-<!-- 出欠登録 -->
-<div id="pnl-r" class="pnl on">
-  <div class="card">
-    <div class="ct">🗂️ 授業回を選択</div>
-    <div class="sbar">
-      <label>授業回：</label><select id="sessEl" onchange="loadSess()"></select>
-      <label>日付：</label><input type="date" id="dateEl">
-      <button class="btn bp" onclick="saveSessDate()">💾 保存</button>
-      <button class="btn bs" onclick="goNewSess()">＋ 新規授業回</button>
-    </div>
-  </div>
-  <div class="srow">
-    <div class="sc st"><div class="sn" id="st0">0</div><div class="sl">受講者数</div></div>
-    <div class="sc sp"><div class="sn" id="st1">0</div><div class="sl">出席</div></div>
-    <div class="sc sa"><div class="sn" id="st2">0</div><div class="sl">欠席</div></div>
-    <div class="sc sl2"><div class="sn" id="st3">0</div><div class="sl">遅刻</div></div>
-    <div class="sc se"><div class="sn" id="st4">0</div><div class="sl">公欠</div></div>
-  </div>
-  <div class="card">
-    <div class="bbar"><span>一括登録：</span><button class="btn bsm bg2" onclick="bulk('present')">✓ 全員出席</button><button class="btn bsm bd" onclick="bulk('absent')">✗ 全員欠席</button><button class="btn bsm bs" onclick="bulk(null)">↺ リセット</button></div>
-    <div class="alist" id="alist"><div class="empty">授業回を選択してください</div></div>
+<!-- ══ SCREEN: Loading ══ -->
+<div id="s-loading" class="screen on">
+  <div class="center-box">
+    <div class="spin"></div>
+    <p id="load-msg" style="color:var(--tl);font-size:14px">初期化中...</p>
   </div>
 </div>
 
-<!-- 出席一覧 -->
-<div id="pnl-o" class="pnl">
-  <div class="card"><div class="ct">📊 学生別出席率</div><div class="tw"><table><thead><tr><th>学籍番号</th><th>氏名</th><th>出席</th><th>欠席</th><th>遅刻</th><th>公欠</th><th>未入力</th><th>出席率</th></tr></thead><tbody id="ovBody"></tbody></table></div></div>
-  <div class="card"><div class="ct">📅 授業回別出席状況</div><div class="tw"><table><thead><tr id="ovHead"></tr></thead><tbody id="ovMatrix"></tbody></table></div></div>
-</div>
-
-<!-- レポート -->
-<div id="pnl-p" class="pnl">
-  <div class="card">
-    <div class="ct">📄 CSV エクスポート</div>
-    <div class="rc">
-      <div><label style="font-size:13px;color:var(--tl);display:block;margin-bottom:4px">対象</label>
-      <select id="expTarget" onchange="toggleExpSess()"><option value="all">全授業回（学生別サマリー）</option><option value="sess">特定の授業回</option><option value="matrix">マトリクス（全学生×全授業回）</option></select></div>
-      <div id="expSessWrap" style="display:none"><label style="font-size:13px;color:var(--tl);display:block;margin-bottom:4px">授業回</label><select id="expSess"></select></div>
-      <button class="btn bp" style="margin-top:18px" onclick="doExport()">⬇ CSV ダウンロード</button>
-    </div>
-  </div>
-  <div class="card"><div class="ct">📈 集計サマリー</div><div id="repSum"></div></div>
-</div>
-
-<!-- 管理 -->
-<div id="pnl-m" class="pnl">
-
-  <!-- 学生追加 -->
-  <div class="card">
-    <div class="ct">👥 学生を追加</div>
-
-    <!-- ① Teams ピープルピッカー -->
-    <div style="margin-bottom:4px">
-      <button class="btn btn-teams" id="teamsPickerBtn" onclick="openTeamsPicker()">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16.5 8a3 3 0 1 0-6 0 3 3 0 0 0 6 0ZM8 9a2.5 2.5 0 1 0-5 0 2.5 2.5 0 0 0 5 0ZM21 9a2.5 2.5 0 1 0-5 0 2.5 2.5 0 0 0 5 0ZM13.5 14c-3.5 0-5.5 1.5-5.5 3v1h11v-1c0-1.5-2-3-5.5-3ZM5.5 15c-2 0-3.5 1-3.5 2.5V19h5.5v-1.5c0-.9.3-1.7.8-2.4-.4-.07-.8-.1-1.3-.1ZM18.5 15c-.5 0-.9.03-1.3.1.5.7.8 1.5.8 2.4V19H23v-1.5C23 16 21.5 15 18.5 15Z" fill="currentColor"/></svg>
-        Teamsメンバーから選択して追加
+<!-- ══ SCREEN: Login ══ -->
+<div id="s-login" class="screen">
+  <div class="center-box">
+    <div class="login-card">
+      <div style="font-size:36px;margin-bottom:12px">📋</div>
+      <h2>出欠管理アプリ</h2>
+      <p>仁愛大学のMicrosoftアカウントでサインインしてください。</p>
+      <button class="btn btn-ms" onclick="doLogin()">
+        <svg viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="9" height="9" fill="#F25022"/><rect x="11" y="1" width="9" height="9" fill="#7FBA00"/><rect x="1" y="11" width="9" height="9" fill="#00A4EF"/><rect x="11" y="11" width="9" height="9" fill="#FFB900"/></svg>
+        Microsoftでサインイン
       </button>
-      <div class="teams-note" id="teamsNote" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCREEN: Teacher ══ -->
+<div id="s-teacher" class="screen">
+  <div class="hdr">
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="6" fill="white" fill-opacity=".15"/><path d="M7 8h14v2H7V8zm0 5h10v2H7v-2zm0 5h14v2H7v-2z" fill="white"/><circle cx="22" cy="13" r="4" fill="#107C10"/><path d="M20.5 13l1 1 2-2" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div><h1>出欠管理</h1><small>Microsoft Teams 出席管理アプリ</small></div>
+    <div class="user-chip"><span id="t-username">--</span><span class="role-badge">先生</span></div>
+  </div>
+  <div class="tabs">
+    <button class="tb on"  onclick="sw('r',this)">📋 出欠登録</button>
+    <button class="tb"     onclick="sw('o',this)">📊 出席一覧</button>
+    <button class="tb"     onclick="sw('p',this)">📄 レポート</button>
+    <button class="tb"     onclick="sw('m',this)">⚙️ 管理</button>
+  </div>
+  <div class="main">
+
+    <!-- 出欠登録 -->
+    <div id="pnl-r" class="pnl on">
+      <div class="card">
+        <div class="ct">🗂️ 授業回を選択</div>
+        <div class="sbar">
+          <label>授業回：</label><select id="sessEl" onchange="loadSess()"></select>
+          <label>日付：</label><input type="date" id="dateEl">
+          <button class="btn bp" onclick="saveSessDate()">💾 保存</button>
+          <button class="btn bs" onclick="goNewSess()">＋ 新規授業回</button>
+        </div>
+      </div>
+      <div class="srow">
+        <div class="sc st"><div class="sn" id="st0">0</div><div class="sl">受講者数</div></div>
+        <div class="sc sp"><div class="sn" id="st1">0</div><div class="sl">出席</div></div>
+        <div class="sc sa"><div class="sn" id="st2">0</div><div class="sl">欠席</div></div>
+        <div class="sc sl2"><div class="sn" id="st3">0</div><div class="sl">遅刻</div></div>
+        <div class="sc se"><div class="sn" id="st4">0</div><div class="sl">公欠</div></div>
+      </div>
+      <div class="card">
+        <div class="bbar"><span>一括登録：</span><button class="btn bsm bg2" onclick="bulk('present')">✓ 全員出席</button><button class="btn bsm bd" onclick="bulk('absent')">✗ 全員欠席</button><button class="btn bsm bs" onclick="bulk(null)">↺ リセット</button></div>
+        <div class="alist" id="alist"><div class="empty">授業回を選択してください</div></div>
+      </div>
     </div>
 
-    <div class="method-divider">または</div>
+    <!-- 出席一覧 -->
+    <div id="pnl-o" class="pnl">
+      <div class="card"><div class="ct">📊 学生別出席率</div><div class="tw"><table><thead><tr><th>学籍番号</th><th>氏名</th><th>出席</th><th>欠席</th><th>遅刻</th><th>公欠</th><th>未入力</th><th>出席率</th></tr></thead><tbody id="ovBody"></tbody></table></div></div>
+      <div class="card"><div class="ct">📅 授業回別</div><div class="tw"><table><thead><tr id="ovHead"></tr></thead><tbody id="ovMatrix"></tbody></table></div></div>
+    </div>
 
-    <!-- ② CSV インポート -->
-    <details style="margin-bottom:0">
-      <summary style="cursor:pointer;font-size:14px;font-weight:500;color:var(--tpd);padding:6px 0;user-select:none">📥 Teamsメンバー一覧CSVから読み込む</summary>
-      <div style="margin-top:12px">
-        <div class="guide">
-          <p>📌 Teamsからの名簿エクスポート手順</p>
-          <ol>
-            <li>クラスチャネルを開く → <code>メンバー</code> タブ</li>
-            <li>右上の <code>⬇ エクスポート</code> をクリック</li>
-            <li>ダウンロードされた <code>.xlsx / .csv</code> を読み込む</li>
-          </ol>
+    <!-- レポート -->
+    <div id="pnl-p" class="pnl">
+      <div class="card">
+        <div class="ct">📄 CSV エクスポート</div>
+        <div class="rc">
+          <div><label style="font-size:13px;color:var(--tl);display:block;margin-bottom:4px">対象</label><select id="expTarget" onchange="toggleExpSess()"><option value="all">全授業回（学生別サマリー）</option><option value="sess">特定の授業回</option><option value="matrix">マトリクス</option></select></div>
+          <div id="expSessWrap" style="display:none"><label style="font-size:13px;color:var(--tl);display:block;margin-bottom:4px">授業回</label><select id="expSess"></select></div>
+          <button class="btn bp" style="margin-top:18px" onclick="doExport()">⬇ CSV ダウンロード</button>
         </div>
-        <label class="ibox" id="ibox">
-          <input type="file" id="ifile" accept=".csv,.xlsx,.xls" onchange="onImportFile(event)">
-          <div class="iico">📂</div>
-          <p>クリックまたはファイルをドロップ</p>
-          <small>.xlsx / .csv に対応</small>
-        </label>
-        <div class="iprev" id="iprev" style="display:none">
-          <h4 style="margin-top:12px">列を指定してください</h4>
-          <div class="cmap">
-            <div class="fld"><label>氏名の列</label><select id="cName" onchange="prevRefresh()"></select></div>
-            <div class="fld"><label>学籍番号・メールの列</label><select id="cId" onchange="prevRefresh()"></select></div>
-            <div class="fld"><label>役割の列（任意）</label><select id="cRole" onchange="prevRefresh()"><option value="">なし</option></select></div>
-            <div class="fld" id="rfWrap" style="display:none"><label>インポート対象</label><select id="rfVal" onchange="prevRefresh()"><option value="">全員</option><option value="m">メンバーのみ（教師・オーナーを除く）</option></select></div>
+      </div>
+      <div class="card"><div class="ct">📈 集計サマリー</div><div id="repSum"></div></div>
+    </div>
+
+    <!-- 管理 -->
+    <div id="pnl-m" class="pnl">
+      <div class="card">
+        <div class="ct">👥 学生を追加</div>
+        <button class="btn" style="background:#464775;color:#fff;margin-bottom:12px" onclick="openTeamsPicker()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 8a3 3 0 1 0-6 0 3 3 0 0 0 6 0ZM8 9a2.5 2.5 0 1 0-5 0 2.5 2.5 0 0 0 5 0ZM21 9a2.5 2.5 0 1 0-5 0 2.5 2.5 0 0 0 5 0ZM13.5 14c-3.5 0-5.5 1.5-5.5 3v1h11v-1c0-1.5-2-3-5.5-3ZM5.5 15c-2 0-3.5 1-3.5 2.5V19h5.5v-1.5c0-.9.3-1.7.8-2.4-.4-.07-.8-.1-1.3-.1ZM18.5 15c-.5 0-.9.03-1.3.1.5.7.8 1.5.8 2.4V19H23v-1.5C23 16 21.5 15 18.5 15Z"/></svg>
+          Teamsメンバーから選択
+        </button>
+        <div class="mdiv">または</div>
+        <details><summary style="cursor:pointer;font-size:14px;font-weight:500;color:var(--tpd);padding:6px 0">📥 CSVファイルから読み込む</summary>
+          <div style="margin-top:10px">
+            <label class="ibox" id="ibox"><input type="file" id="ifile" accept=".csv,.xlsx,.xls" onchange="onImportFile(event)"><div class="iico">📂</div><p>クリックまたはドロップ</p><small>.xlsx / .csv</small></label>
+            <div class="iprev" id="iprev" style="display:none">
+              <h4>列を指定</h4>
+              <div class="cmap"><div class="fld"><label>氏名</label><select id="cName" onchange="prevRefresh()"></select></div><div class="fld"><label>学籍番号・メール</label><select id="cId" onchange="prevRefresh()"></select></div><div class="fld"><label>役割（任意）</label><select id="cRole" onchange="prevRefresh()"><option value="">なし</option></select></div><div class="fld" id="rfWrap" style="display:none"><label>対象</label><select id="rfVal" onchange="prevRefresh()"><option value="">全員</option><option value="m">メンバーのみ</option></select></div></div>
+              <div class="ptw"><table class="pt"><thead><tr><th>氏名</th><th>ID</th><th>役割</th></tr></thead><tbody id="prevBody"></tbody></table></div>
+              <div class="ia"><span class="ic" id="prevCount"></span><button class="btn bp" onclick="doImport()">✅ 読み込む</button><button class="btn bs" onclick="cancelImport()">キャンセル</button></div>
+            </div>
           </div>
-          <div class="ptw"><table class="pt"><thead><tr><th>氏名</th><th>学籍番号 / ID</th><th>役割</th></tr></thead><tbody id="prevBody"></tbody></table></div>
-          <div class="ia"><span class="ic" id="prevCount"></span><button class="btn bp" onclick="doImport()">✅ 読み込む</button><button class="btn bs" onclick="cancelImport()">キャンセル</button></div>
+        </details>
+        <div class="mdiv">または</div>
+        <details><summary style="cursor:pointer;font-size:14px;font-weight:500;color:var(--tpd);padding:6px 0">✏️ 手動で追加</summary>
+          <div style="margin-top:10px"><div class="af"><div class="fld"><label>学籍番号</label><input type="text" id="nSid" placeholder="S2024001" maxlength="20"></div><div class="fld"><label>氏名</label><input type="text" id="nSname" placeholder="山田 太郎"></div><button class="btn bp" style="margin-top:18px" onclick="addStu()">＋ 追加</button></div></div>
+        </details>
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+          <div style="font-size:13px;font-weight:600;color:var(--tpd);margin-bottom:10px">登録済み学生 <span id="stuCount" style="font-weight:400;color:var(--tl)"></span></div>
+          <div id="stuList"></div>
         </div>
       </div>
-    </details>
-
-    <div class="method-divider">または</div>
-
-    <!-- ③ 手動追加 -->
-    <details>
-      <summary style="cursor:pointer;font-size:14px;font-weight:500;color:var(--tpd);padding:6px 0;user-select:none">✏️ 手動で1名ずつ追加</summary>
-      <div style="margin-top:12px">
-        <div class="af">
-          <div class="fld"><label>学籍番号</label><input type="text" id="nSid" placeholder="例: S2024001" maxlength="20"></div>
-          <div class="fld"><label>氏名</label><input type="text" id="nSname" placeholder="例: 山田 太郎"></div>
-          <button class="btn bp" style="margin-top:18px" onclick="addStu()">＋ 追加</button>
-        </div>
+      <div class="card">
+        <div class="ct">🗓️ 授業回管理</div>
+        <div class="af" style="margin-bottom:16px"><div class="fld"><label>授業回名</label><input type="text" id="nSsName" placeholder="第1回"></div><div class="fld"><label>日付</label><input type="date" id="nSsDate"></div><button class="btn bp" style="margin-top:18px" onclick="addSess()">＋ 追加</button></div>
+        <div class="slist" id="sessList"></div>
       </div>
-    </details>
-
-    <!-- 登録済み一覧 -->
-    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
-      <div style="font-size:13px;font-weight:600;color:var(--tpd);margin-bottom:10px">登録済み学生 <span id="stuCount" style="font-weight:400;color:var(--tl)"></span></div>
-      <div id="stuList"></div>
+      <div class="card">
+        <div class="ct" style="color:#C50F1F">⚠️ データ管理</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn bd" onclick="armReset('students')">👤 学生データをリセット</button>
+          <button class="btn bd" onclick="armReset('all')">🗑 全データをリセット</button>
+        </div>
+        <div id="rc-students" style="display:none;margin-top:12px;padding:12px;background:var(--absent-bg);border:1px solid #f4a7ac;border-radius:var(--r)"><p style="font-size:13px;color:var(--absent);margin-bottom:8px">⚠️ 登録学生と出欠記録をすべて削除します。よろしいですか？</p><div style="display:flex;gap:8px"><button class="btn barm" onclick="execReset('students')">はい、削除する</button><button class="btn bs" onclick="cancelReset('students')">キャンセル</button></div></div>
+        <div id="rc-all" style="display:none;margin-top:12px;padding:12px;background:var(--absent-bg);border:1px solid #f4a7ac;border-radius:var(--r)"><p style="font-size:13px;color:var(--absent);margin-bottom:8px">⚠️ すべてのデータを削除します。元に戻せません。</p><div style="display:flex;gap:8px"><button class="btn barm" onclick="execReset('all')">はい、削除する</button><button class="btn bs" onclick="cancelReset('all')">キャンセル</button></div></div>
+      </div>
     </div>
+
+  </div><!-- /main -->
+</div><!-- /s-teacher -->
+
+<!-- ══ SCREEN: Student ══ -->
+<div id="s-student" class="screen">
+  <div class="hdr">
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="6" fill="white" fill-opacity=".15"/><path d="M7 8h14v2H7V8zm0 5h10v2H7v-2zm0 5h14v2H7v-2z" fill="white"/><circle cx="22" cy="13" r="4" fill="#107C10"/><path d="M20.5 13l1 1 2-2" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div><h1>出欠管理</h1><small>Microsoft Teams 出席管理アプリ</small></div>
+    <div class="user-chip"><span id="s-username">--</span><span class="role-badge" style="background:rgba(255,255,255,.2)">学生</span></div>
   </div>
-
-  <!-- 授業回 -->
-  <div class="card">
-    <div class="ct">🗓️ 授業回管理</div>
-    <div class="af" style="margin-bottom:16px">
-      <div class="fld"><label>授業回名</label><input type="text" id="nSsName" placeholder="例: 第1回"></div>
-      <div class="fld"><label>日付</label><input type="date" id="nSsDate"></div>
-      <button class="btn bp" style="margin-top:18px" onclick="addSess()">＋ 追加</button>
-    </div>
-    <div class="slist" id="sessList"></div>
+  <div class="main" id="s-student-main">
+    <!-- dynamically rendered -->
   </div>
-
-  <!-- データ管理 -->
-  <div class="card">
-    <div class="ct" style="color:#C50F1F">⚠️ データ管理</div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <button class="btn bd" onclick="armReset('students')">👤 学生データをリセット</button>
-      <button class="btn bd" onclick="armReset('all')">🗑 全データをリセット</button>
-    </div>
-    <div id="rc-students" style="display:none;margin-top:12px;padding:12px 14px;background:var(--absent-bg);border:1px solid #f4a7ac;border-radius:var(--r)">
-      <p style="font-size:13px;color:var(--absent);margin-bottom:8px">⚠️ 登録学生と出欠記録をすべて削除します。よろしいですか？</p>
-      <div style="display:flex;gap:8px"><button class="btn barm" onclick="execReset('students')">はい、削除する</button><button class="btn bs" onclick="cancelReset('students')">キャンセル</button></div>
-    </div>
-    <div id="rc-all" style="display:none;margin-top:12px;padding:12px 14px;background:var(--absent-bg);border:1px solid #f4a7ac;border-radius:var(--r)">
-      <p style="font-size:13px;color:var(--absent);margin-bottom:8px">⚠️ 学生・授業回・出欠記録をすべて削除します。元に戻せません。</p>
-      <div style="display:flex;gap:8px"><button class="btn barm" onclick="execReset('all')">はい、すべて削除する</button><button class="btn bs" onclick="cancelReset('all')">キャンセル</button></div>
-    </div>
-  </div>
-
 </div>
-</div>
+
 <div id="toast"></div>
 
 <script>
+// ═══════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════
+const CFG = {
+  clientId:    'd19b1186-1582-46eb-9cec-757e626e9a28',
+  tenantId:    'f70e0fce-c226-41db-8de7-537e39bd2351',
+  siteUrl:     'https://jindai.sharepoint.com/sites/2026_1_4',
+  redirectUri: 'https://tomodemu-source.github.io/attendance-app/',
+};
+
+const LIST = { students:'出欠_学生', sessions:'出欠_授業回', records:'出欠_記録' };
 const COLORS=['#6264A7','#0078D4','#038387','#107C10','#E8720C','#C239B3','#8764B8','#00B4D2'];
 const SL={present:'出席',absent:'欠席',late:'遅刻',excused:'公欠'};
+
+// ═══════════════════════════════════
+//  STATE
+// ═══════════════════════════════════
+let msalInst, graphToken=null, spSiteId=null;
+let listIds={students:null,sessions:null,records:null};
+let me={name:'',id:'',teamsId:'',isOwner:false};
 let S={students:[],sessions:[],records:{}};
 let iRows=[],iHeaders=[];
 let teamsReady=false;
 
-/* ── Teams SDK init ── */
-(async()=>{
-  try{
-    await microsoftTeams.app.initialize();
-    teamsReady=true;
-    document.getElementById('teamsPickerBtn').textContent='';
-    document.getElementById('teamsPickerBtn').innerHTML=`<svg viewBox="0 0 24 24" width="16" height="16" fill="none"><path d="M16.5 8a3 3 0 1 0-6 0 3 3 0 0 0 6 0ZM8 9a2.5 2.5 0 1 0-5 0 2.5 2.5 0 0 0 5 0ZM21 9a2.5 2.5 0 1 0-5 0 2.5 2.5 0 0 0 5 0ZM13.5 14c-3.5 0-5.5 1.5-5.5 3v1h11v-1c0-1.5-2-3-5.5-3ZM5.5 15c-2 0-3.5 1-3.5 2.5V19h5.5v-1.5c0-.9.3-1.7.8-2.4-.4-.07-.8-.1-1.3-.1ZM18.5 15c-.5 0-.9.03-1.3.1.5.7.8 1.5.8 2.4V19H23v-1.5C23 16 21.5 15 18.5 15Z" fill="currentColor"/></svg> Teamsメンバーから選択して追加`;
-  }catch(e){
-    // Not in Teams — show note
-    const note=document.getElementById('teamsNote');
-    note.style.display='block';
-    note.innerHTML='ℹ️ このボタンはTeamsのタブ内でのみ動作します。ブラウザで開いている場合はCSVインポートか手動追加をお使いください。';
-    document.getElementById('teamsPickerBtn').style.opacity='0.5';
-    document.getElementById('teamsPickerBtn').style.cursor='default';
-  }
-})();
+// ═══════════════════════════════════
+//  MSAL
+// ═══════════════════════════════════
+async function initMSAL(){
+  msalInst = new msal.PublicClientApplication({
+    auth:{ clientId:CFG.clientId, authority:`https://login.microsoftonline.com/${CFG.tenantId}`, redirectUri:CFG.redirectUri },
+    cache:{ cacheLocation:'sessionStorage' }
+  });
+  await msalInst.initialize();
+  const res = await msalInst.handleRedirectPromise();
+  if(res) graphToken = res.accessToken;
+  return msalInst.getAllAccounts();
+}
 
-async function openTeamsPicker(){
-  if(!teamsReady){
-    const note=document.getElementById('teamsNote');
-    note.style.display='block';
-    note.innerHTML='ℹ️ Teamsのタブ内でのみ使用できます。';
+async function doLogin(){
+  try{
+    const res = await msalInst.loginPopup({ scopes:['User.Read','Sites.ReadWrite.All'] });
+    graphToken = res.accessToken;
+    bootApp();
+  }catch(e){
+    await msalInst.loginRedirect({ scopes:['User.Read','Sites.ReadWrite.All'] });
+  }
+}
+
+async function ensureToken(){
+  const accs = msalInst.getAllAccounts();
+  if(!accs.length) return null;
+  try{
+    const res = await msalInst.acquireTokenSilent({ scopes:['User.Read','Sites.ReadWrite.All'], account:accs[0] });
+    graphToken = res.accessToken;
+  }catch(e){
+    await msalInst.acquireTokenRedirect({ scopes:['User.Read','Sites.ReadWrite.All'] });
+  }
+  return graphToken;
+}
+
+// ═══════════════════════════════════
+//  GRAPH API
+// ═══════════════════════════════════
+async function gFetch(method,url,body){
+  await ensureToken();
+  const opts={method,headers:{Authorization:`Bearer ${graphToken}`,'Content-Type':'application/json'}};
+  if(body) opts.body=JSON.stringify(body);
+  const r=await fetch(`https://graph.microsoft.com/v1.0${url}`,opts);
+  if(!r.ok){ const t=await r.text(); throw new Error(`${method} ${url} → ${r.status}: ${t.slice(0,200)}`); }
+  return r.status===204?null:r.json();
+}
+const G={
+  get:url=>gFetch('GET',url),
+  post:(url,b)=>gFetch('POST',url,b),
+  patch:(url,b)=>gFetch('PATCH',url,b),
+  del:url=>gFetch('DELETE',url)
+};
+
+// ═══════════════════════════════════
+//  SHAREPOINT
+// ═══════════════════════════════════
+async function getSiteId(){
+  if(spSiteId) return spSiteId;
+  const u=new URL(CFG.siteUrl);
+  const d=await G.get(`/sites/${u.hostname}:${u.pathname}`);
+  spSiteId=d.id; return spSiteId;
+}
+
+async function getOrCreateList(name,cols){
+  const sid=await getSiteId();
+  const res=await G.get(`/sites/${sid}/lists?$filter=displayName eq '${encodeURIComponent(name)}'&$select=id`);
+  if(res.value.length) return res.value[0].id;
+  const list=await G.post(`/sites/${sid}/lists`,{displayName:name,list:{template:'genericList'}});
+  for(const c of cols) await G.post(`/sites/${sid}/lists/${list.id}/columns`,c).catch(()=>{});
+  return list.id;
+}
+
+async function spGet(listId){
+  const sid=await getSiteId();
+  const data=await G.get(`/sites/${sid}/lists/${listId}/items?expand=fields&$top=5000&$select=id,fields`);
+  return data.value.map(i=>({_id:i.id,...i.fields}));
+}
+async function spAdd(listId,fields){
+  const sid=await getSiteId();
+  const d=await G.post(`/sites/${sid}/lists/${listId}/items`,{fields});
+  return d.id;
+}
+async function spUpdate(listId,itemId,fields){
+  const sid=await getSiteId();
+  await G.patch(`/sites/${sid}/lists/${listId}/items/${itemId}/fields`,fields);
+}
+async function spDel(listId,itemId){
+  const sid=await getSiteId();
+  await G.del(`/sites/${sid}/lists/${listId}/items/${itemId}`);
+}
+
+// ═══════════════════════════════════
+//  DATA LAYER
+// ═══════════════════════════════════
+async function ensureLists(){
+  setMsg('SharePointリストを確認中...');
+  const [si,ss,sr]=await Promise.all([
+    getOrCreateList(LIST.students,[{name:'StudentId',text:{}},{name:'Color',text:{}},{name:'TeamsId',text:{}}]),
+    getOrCreateList(LIST.sessions,[{name:'SessionDate',text:{}}]),
+    getOrCreateList(LIST.records, [{name:'SessionId',text:{}},{name:'StudentId',text:{}},{name:'Status',text:{}},{name:'Note',text:{}}])
+  ]);
+  listIds={students:si,sessions:ss,records:sr};
+}
+
+async function loadAll(){
+  setMsg('データを読み込み中...');
+  const [stuItems,sessItems,recItems]=await Promise.all([
+    spGet(listIds.students),spGet(listIds.sessions),spGet(listIds.records)
+  ]);
+  S.students=stuItems.map(s=>({_id:s._id,id:s.StudentId||s.Title,name:s.Title,color:s.Color||COLORS[0],teamsId:s.TeamsId||''}));
+  S.sessions=sessItems.map(s=>({_id:s._id,id:s._id,name:s.Title,date:s.SessionDate||''}));
+  S.records={};
+  recItems.forEach(r=>{
+    if(!S.records[r.SessionId])S.records[r.SessionId]={};
+    S.records[r.SessionId][r.StudentId]={_id:r._id,status:r.Status||null,note:r.Note||''};
+  });
+}
+
+// ═══════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════
+function setMsg(m){document.getElementById('load-msg').textContent=m;}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));document.getElementById(id).classList.add('on');}
+
+async function bootApp(){
+  showScreen('s-loading');
+  try{
+    // Get current user
+    setMsg('ユーザー情報を取得中...');
+    await ensureToken();
+    const user=await G.get('/me?$select=displayName,id,userPrincipalName');
+    me.name=user.displayName; me.id=user.id; me.upn=user.userPrincipalName;
+
+    // Get Teams role
+    try{
+      await microsoftTeams.app.initialize();
+      teamsReady=true;
+      const ctx=await microsoftTeams.app.getContext();
+      me.isOwner=(ctx.team?.userRole==='Owner'||ctx.channel?.membershipType==='Owner');
+    }catch(e){ me.isOwner=true; } // fallback for browser dev
+
+    // Ensure SP lists
+    await ensureLists();
+    await loadAll();
+
+    // Render
+    if(me.isOwner){
+      document.getElementById('t-username').textContent=me.name;
+      renderSessEl();renderManage();renderOverview();renderReport();
+      const v=document.getElementById('sessEl').value;if(v)loadSess();
+      showScreen('s-teacher');
+    } else {
+      document.getElementById('s-username').textContent=me.name;
+      renderStudentView();
+      showScreen('s-student');
+    }
+  }catch(e){
+    setMsg('エラー: '+e.message);
+    console.error(e);
+  }
+}
+
+async function init(){
+  try{
+    const accs=await initMSAL();
+    if(!accs.length){ showScreen('s-login'); return; }
+    await bootApp();
+  }catch(e){ setMsg('起動エラー: '+e.message); console.error(e); }
+}
+
+// ═══════════════════════════════════
+//  STUDENT VIEW
+// ═══════════════════════════════════
+function renderStudentView(){
+  const main=document.getElementById('s-student-main');
+  // Find student by Teams ID or email prefix
+  const upnPrefix=(me.upn||'').split('@')[0].toLowerCase();
+  const stu=S.students.find(s=>
+    (s.teamsId&&s.teamsId===me.id)||
+    s.id.toLowerCase()===upnPrefix||
+    s.name===me.name
+  );
+  if(!stu){
+    main.innerHTML=`<div class="not-found"><div class="icon">🔍</div><h3>学生リストに登録されていません</h3><p>先生に学生リストへの登録を依頼してください。<br>登録後、ページを再読み込みすると表示されます。</p></div>`;
     return;
   }
-  try{
-    const people = await microsoftTeams.people.selectPeople({
-      title:'追加する学生を選択',
-      setSelected:[],
-      openOrgWideSearchInChatOrChannel:true,
-      singleSelect:false
-    });
-    if(!people||!people.length){toast('選択がキャンセルされました');return;}
-    let added=0,skip=0;
-    people.forEach(p=>{
-      const name=p.displayName||'';
-      const id=(p.email||p.userPrincipalName||'').split('@')[0]||p.objectId?.slice(0,10)||name.replace(/\s/g,'_').slice(0,12);
-      if(!name){skip++;return;}
-      if(S.students.find(s=>s.name===name||(id&&s.id===id))){skip++;return;}
-      S.students.push({id,name,color:COLORS[S.students.length%COLORS.length]});
-      added++;
-    });
-    save();renderManage();renderSessEl();
-    const c=document.getElementById('sessEl').value;if(c){renderAlist(c);updateStats(c);}
-    toast(`✅ ${added}名を追加しました${skip?`（${skip}名は重複スキップ）`:''}`);
-  }catch(e){
-    const note=document.getElementById('teamsNote');
-    note.style.display='block';
-    note.textContent='⚠️ メンバー選択に失敗しました: '+e.message;
-  }
+  let p=0,a=0,l=0,e=0,total=0;
+  const sessRows=S.sessions.map(sess=>{
+    const rec=(S.records[sess.id]||{})[stu.id]||{};
+    const st=rec.status||null;
+    if(st){total++;if(st==='present')p++;else if(st==='absent')a++;else if(st==='late')l++;else if(st==='excused')e++;}
+    const bc=st?{'present':'bp2','absent':'ba2','late':'bl2','excused':'be2'}[st]:'bu2';
+    return`<div class="stu-sess-row"><span class="stu-sess-name">${sess.name}</span><span class="stu-sess-date">${sess.date||''}</span><span class="badge ${bc}">${st?SL[st]:'未入力'}</span>${rec.note?`<span style="font-size:11px;color:var(--tl)">${rec.note}</span>`:''}</div>`;
+  }).join('');
+  const rate=total>0?Math.round((p+l)/Math.max(p+a+l+e,1)*100):null;
+  main.innerHTML=`
+    <div class="stu-hero">
+      <div class="stu-av" style="background:${stu.color}">${stu.name.charAt(0)}</div>
+      <div style="flex:1"><div style="font-size:13px;opacity:.85;margin-bottom:4px">こんにちは</div><div style="font-size:20px;font-weight:700;margin-bottom:12px">${stu.name} さん</div>
+        <div style="display:flex;gap:20px;flex-wrap:wrap">
+          ${rate!==null?`<div><div class="stu-rate">${rate}%</div><div class="stu-rate-label">出席率</div></div>`:''}
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+            <div style="text-align:center"><div style="font-size:20px;font-weight:700">${p}</div><div style="font-size:11px;opacity:.8">出席</div></div>
+            <div style="text-align:center"><div style="font-size:20px;font-weight:700">${a}</div><div style="font-size:11px;opacity:.8">欠席</div></div>
+            <div style="text-align:center"><div style="font-size:20px;font-weight:700">${l}</div><div style="font-size:11px;opacity:.8">遅刻</div></div>
+            <div style="text-align:center"><div style="font-size:20px;font-weight:700">${e}</div><div style="font-size:11px;opacity:.8">公欠</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card"><div class="ct">📅 授業回別出欠状況</div>${S.sessions.length?sessRows:'<div class="empty">授業回がありません</div>'}</div>`;
 }
 
-/* ── persistence ── */
-function save(){try{localStorage.setItem('atnd_v3',JSON.stringify(S));}catch(e){}}
-function loadS(){try{const d=localStorage.getItem('atnd_v3');if(d)S=JSON.parse(d);}catch(e){}}
-
-function loadSample(){
-  S={
-    students:[
-      {id:'S2024001',name:'山田 太郎',color:COLORS[0]},{id:'S2024002',name:'鈴木 花子',color:COLORS[1]},
-      {id:'S2024003',name:'田中 健一',color:COLORS[2]},{id:'S2024004',name:'佐藤 美咲',color:COLORS[3]},
-      {id:'S2024005',name:'伊藤 拓也',color:COLORS[4]},{id:'S2024006',name:'渡辺 さくら',color:COLORS[5]},
-    ],
-    sessions:[{id:'s1',name:'第1回',date:'2026-04-10'},{id:'s2',name:'第2回',date:'2026-04-17'},{id:'s3',name:'第3回',date:'2026-04-24'}],
-    records:{
-      s1:{S2024001:{status:'present',note:''},S2024002:{status:'present',note:''},S2024003:{status:'absent',note:'体調不良'},S2024004:{status:'present',note:''},S2024005:{status:'late',note:'10分遅刻'},S2024006:{status:'present',note:''}},
-      s2:{S2024001:{status:'present',note:''},S2024002:{status:'absent',note:''},S2024003:{status:'present',note:''},S2024004:{status:'present',note:''},S2024005:{status:'present',note:''},S2024006:{status:'late',note:'5分遅刻'}},
-      s3:{}
-    }
-  };
-  save();init();toast('サンプルデータを読み込みました');
-}
-
-function init(){renderSessEl();renderManage();renderOverview();renderReport();const v=document.getElementById('sessEl').value;if(v)loadSess();}
+// ═══════════════════════════════════
+//  TEACHER UI
+// ═══════════════════════════════════
 let tTimer;
 function toast(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('on');clearTimeout(tTimer);tTimer=setTimeout(()=>e.classList.remove('on'),2400);}
 function sw(id,btn){document.querySelectorAll('.pnl').forEach(p=>p.classList.remove('on'));document.querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));document.getElementById('pnl-'+id).classList.add('on');btn.classList.add('on');if(id==='o')renderOverview();if(id==='p')renderReport();if(id==='m')renderManage();}
-function goNewSess(){sw('m',document.querySelectorAll('.tb')[3]);renderManage();setTimeout(()=>document.getElementById('nSsName').focus(),100);toast('授業回名を入力して「＋ 追加」してください');}
+function goNewSess(){sw('m',document.querySelectorAll('.tb')[3]);renderManage();setTimeout(()=>document.getElementById('nSsName').focus(),100);}
 
 function renderSessEl(){const s=document.getElementById('sessEl'),e=document.getElementById('expSess'),c=s.value;s.innerHTML=S.sessions.map(x=>`<option value="${x.id}">${x.name}（${x.date||'日付未設定'}）</option>`).join('')||'<option value="">授業回なし</option>';if(c&&S.sessions.find(x=>x.id===c))s.value=c;e.innerHTML=s.innerHTML;}
 function loadSess(){const id=document.getElementById('sessEl').value;if(!id)return;const s=S.sessions.find(x=>x.id===id);document.getElementById('dateEl').value=s?.date||'';if(!S.records[id])S.records[id]={};renderAlist(id);updateStats(id);}
-function saveSessDate(){const id=document.getElementById('sessEl').value,d=document.getElementById('dateEl').value,s=S.sessions.find(x=>x.id===id);if(s){s.date=d;save();renderSessEl();toast('日付を保存しました');}}
+
+async function saveSessDate(){
+  const id=document.getElementById('sessEl').value;const d=document.getElementById('dateEl').value;
+  const s=S.sessions.find(x=>x.id===id);if(!s)return;
+  await spUpdate(listIds.sessions,s._id,{SessionDate:d});
+  s.date=d;renderSessEl();toast('日付を保存しました');
+}
 
 function renderAlist(sid){
   const el=document.getElementById('alist');
   if(!S.students.length){el.innerHTML='<div class="empty">管理タブで学生を登録してください</div>';return;}
-  el.innerHTML=S.students.map(st=>{const r=(S.records[sid]||{})[st.id]||{status:null,note:''};return`<div class="arow" id="ar-${sid}-${st.id}"><div class="av" style="background:${st.color}">${st.name.charAt(0)}</div><div style="flex:1;min-width:0"><div class="an">${st.name}</div><div class="aid">${st.id}</div></div><div class="sbtns">${['present','absent','late','excused'].map(s=>`<button class="sbtn ${r.status===s?'s'+s.charAt(0):''}" onclick="setSt('${sid}','${st.id}','${s}')">${SL[s]}</button>`).join('')}</div><input class="ni" type="text" placeholder="備考" value="${r.note||''}" oninput="setNote('${sid}','${st.id}',this.value)"></div>`;}).join('');
+  el.innerHTML=S.students.map(st=>{
+    const r=(S.records[sid]||{})[st.id]||{status:null,note:''};
+    return`<div class="arow" id="ar-${sid}-${st.id}">
+      <div class="av" style="background:${st.color}">${st.name.charAt(0)}</div>
+      <div style="flex:1;min-width:0"><div class="an">${st.name}</div><div class="aid">${st.id}</div></div>
+      <div class="sbtns">${['present','absent','late','excused'].map(s=>`<button class="sbtn ${r.status===s?'s'+s.charAt(0):''}" onclick="setSt('${sid}','${st.id}','${s}',this)">${SL[s]}</button>`).join('')}</div>
+      <input class="ni" type="text" placeholder="備考" value="${r.note||''}" onchange="setNote('${sid}','${st.id}',this.value)">
+    </div>`;
+  }).join('');
 }
-function setSt(sid,uid,st){if(!S.records[sid])S.records[sid]={};const r=S.records[sid][uid]||{status:null,note:''};r.status=r.status===st?null:st;S.records[sid][uid]=r;const row=document.getElementById(`ar-${sid}-${uid}`);['present','absent','late','excused'].forEach((s,i)=>{row.querySelectorAll('.sbtn')[i].className='sbtn'+(r.status===s?' s'+s.charAt(0):'');});save();updateStats(sid);}
-function setNote(sid,uid,note){if(!S.records[sid])S.records[sid]={};if(!S.records[sid][uid])S.records[sid][uid]={status:null,note:''};S.records[sid][uid].note=note;save();}
-function bulk(st){const id=document.getElementById('sessEl').value;if(!id)return;if(!S.records[id])S.records[id]={};S.students.forEach(s=>{if(!S.records[id][s.id])S.records[id][s.id]={status:null,note:''};S.records[id][s.id].status=st;});save();renderAlist(id);updateStats(id);toast(st?`全員を「${SL[st]}」に設定しました`:'リセットしました');}
+
+async function setSt(sid,uid,st,btn){
+  const row=document.getElementById(`ar-${sid}-${uid}`);row.classList.add('saving');
+  row.querySelectorAll('.sbtn').forEach(b=>b.disabled=true);
+  try{
+    if(!S.records[sid])S.records[sid]={};
+    const r=S.records[sid][uid]||{status:null,note:''};
+    const newSt=r.status===st?null:st;
+    if(r._id){ await spUpdate(listIds.records,r._id,{Status:newSt||''}); }
+    else{ const id=await spAdd(listIds.records,{Title:`${sid}_${uid}`,SessionId:sid,StudentId:uid,Status:newSt||'',Note:r.note||''});r._id=id; }
+    r.status=newSt;S.records[sid][uid]=r;
+    ['present','absent','late','excused'].forEach((s,i)=>{row.querySelectorAll('.sbtn')[i].className='sbtn'+(r.status===s?' s'+s.charAt(0):'');});
+    updateStats(sid);
+  }catch(e){toast('保存エラー: '+e.message);}
+  row.classList.remove('saving');row.querySelectorAll('.sbtn').forEach(b=>b.disabled=false);
+}
+
+async function setNote(sid,uid,note){
+  if(!S.records[sid])S.records[sid]={};
+  const r=S.records[sid][uid]||{status:null,note:''};
+  try{
+    if(r._id){ await spUpdate(listIds.records,r._id,{Note:note}); }
+    else{ const id=await spAdd(listIds.records,{Title:`${sid}_${uid}`,SessionId:sid,StudentId:uid,Status:r.status||'',Note:note});r._id=id; }
+    r.note=note;S.records[sid][uid]=r;
+  }catch(e){toast('備考保存エラー');}
+}
+
+async function bulk(st){
+  const id=document.getElementById('sessEl').value;if(!id)return;
+  if(!S.records[id])S.records[id]={};
+  toast('保存中...');
+  for(const s of S.students){
+    const r=S.records[id][s.id]||{status:null,note:''};
+    try{
+      if(r._id){await spUpdate(listIds.records,r._id,{Status:st||''});}
+      else{const nid=await spAdd(listIds.records,{Title:`${id}_${s.id}`,SessionId:id,StudentId:s.id,Status:st||'',Note:''});r._id=nid;}
+      r.status=st;S.records[id][s.id]=r;
+    }catch(e){}
+  }
+  renderAlist(id);updateStats(id);toast(st?`全員を「${SL[st]}」に設定しました`:'リセットしました');
+}
+
 function updateStats(sid){const r=S.records[sid]||{};let p=0,a=0,l=0,e=0;S.students.forEach(s=>{const v=(r[s.id]||{}).status;if(v==='present')p++;else if(v==='absent')a++;else if(v==='late')l++;else if(v==='excused')e++;});['st0','st1','st2','st3','st4'].forEach((id,i)=>{document.getElementById(id).textContent=[S.students.length,p,a,l,e][i];});}
 
-function renderOverview(){document.getElementById('ovBody').innerHTML=S.students.map(st=>{let p=0,a=0,l=0,e=0,u=0;S.sessions.forEach(ss=>{const v=((S.records[ss.id]||{})[st.id]||{}).status;if(v==='present')p++;else if(v==='absent')a++;else if(v==='late')l++;else if(v==='excused')e++;else u++;});const rt=Math.round((p+l)/Math.max(p+a+l+e,1)*100);return`<tr><td>${st.id}</td><td><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:24px;height:24px;border-radius:50%;background:${st.color};display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">${st.name.charAt(0)}</span>${st.name}</span></td><td><span class="badge bp2">${p}</span></td><td><span class="badge ba2">${a}</span></td><td><span class="badge bl2">${l}</span></td><td><span class="badge be2">${e}</span></td><td>${u}</td><td><div class="rbw"><div class="rb"><div class="rf" style="width:${rt}%"></div></div><span style="font-size:12px;font-weight:600;color:var(--present);min-width:34px">${rt}%</span></div></td></tr>`;}).join('')||'<tr><td colspan="8" class="empty">学生が登録されていません</td></tr>';const h=document.getElementById('ovHead'),b=document.getElementById('ovMatrix');h.innerHTML='<th>氏名</th>'+S.sessions.map(s=>`<th>${s.name}<br><span style="font-weight:400;font-size:11px">${s.date||''}</span></th>`).join('');b.innerHTML=S.students.map(st=>`<tr><td>${st.name}</td>${S.sessions.map(ss=>{const v=((S.records[ss.id]||{})[st.id]||{}).status;return`<td><span class="badge ${v?{'present':'bp2','absent':'ba2','late':'bl2','excused':'be2'}[v]:'bu2'}">${v?SL[v]:'―'}</span></td>`;}).join('')}</tr>`).join('')||`<tr><td colspan="${S.sessions.length+1}" class="empty">データなし</td></tr>`;}
+function renderOverview(){
+  document.getElementById('ovBody').innerHTML=S.students.map(st=>{let p=0,a=0,l=0,e=0,u=0;S.sessions.forEach(ss=>{const v=((S.records[ss.id]||{})[st.id]||{}).status;if(v==='present')p++;else if(v==='absent')a++;else if(v==='late')l++;else if(v==='excused')e++;else u++;});const rt=Math.round((p+l)/Math.max(p+a+l+e,1)*100);return`<tr><td>${st.id}</td><td><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:24px;height:24px;border-radius:50%;background:${st.color};display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">${st.name.charAt(0)}</span>${st.name}</span></td><td><span class="badge bp2">${p}</span></td><td><span class="badge ba2">${a}</span></td><td><span class="badge bl2">${l}</span></td><td><span class="badge be2">${e}</span></td><td>${u}</td><td><div class="rbw"><div class="rb"><div class="rf" style="width:${rt}%"></div></div><span style="font-size:12px;font-weight:600;color:var(--present);min-width:34px">${rt}%</span></div></td></tr>`;}).join('')||'<tr><td colspan="8" class="empty">学生が登録されていません</td></tr>';
+  const h=document.getElementById('ovHead'),b=document.getElementById('ovMatrix');
+  h.innerHTML='<th>氏名</th>'+S.sessions.map(s=>`<th>${s.name}<br><span style="font-weight:400;font-size:11px">${s.date||''}</span></th>`).join('');
+  b.innerHTML=S.students.map(st=>`<tr><td>${st.name}</td>${S.sessions.map(ss=>{const v=((S.records[ss.id]||{})[st.id]||{}).status;return`<td><span class="badge ${v?{'present':'bp2','absent':'ba2','late':'bl2','excused':'be2'}[v]:'bu2'}">${v?SL[v]:'―'}</span></td>`;}).join('')}</tr>`).join('')||`<tr><td colspan="${S.sessions.length+1}" class="empty">データなし</td></tr>`;
+}
 
 function toggleExpSess(){document.getElementById('expSessWrap').style.display=document.getElementById('expTarget').value==='sess'?'':'none';}
 function renderReport(){renderSessEl();const el=document.getElementById('repSum');if(!S.sessions.length){el.innerHTML='<div class="empty">授業回が登録されていません</div>';return;}let h='<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:var(--tpl)"><th style="padding:8px 12px;text-align:left">授業回</th><th style="padding:8px 12px;text-align:center">出席</th><th style="padding:8px 12px;text-align:center">欠席</th><th style="padding:8px 12px;text-align:center">遅刻</th><th style="padding:8px 12px;text-align:center">公欠</th><th style="padding:8px 12px;text-align:center">出席率</th></tr></thead><tbody>';S.sessions.forEach(ss=>{let p=0,a=0,l=0,e=0;S.students.forEach(st=>{const v=((S.records[ss.id]||{})[st.id]||{}).status;if(v==='present')p++;else if(v==='absent')a++;else if(v==='late')l++;else if(v==='excused')e++;});const rt=S.students.length?Math.round((p+l)/Math.max(p+a+l+e,1)*100):0;h+=`<tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-weight:500">${ss.name}<br><span style="font-size:11px;color:var(--tl)">${ss.date||''}</span></td><td style="padding:8px 12px;text-align:center"><span class="badge bp2">${p}</span></td><td style="padding:8px 12px;text-align:center"><span class="badge ba2">${a}</span></td><td style="padding:8px 12px;text-align:center"><span class="badge bl2">${l}</span></td><td style="padding:8px 12px;text-align:center"><span class="badge be2">${e}</span></td><td style="padding:8px 12px;text-align:center;font-weight:600;color:var(--present)">${rt}%</td></tr>`;});el.innerHTML=h+'</tbody></table>';}
-function doExport(){const t=document.getElementById('expTarget').value;let csv='',fn='';const td=s=>s===null?'未入力':(SL[s]||'未入力');if(t==='sess'){const id=document.getElementById('expSess').value,ss=S.sessions.find(s=>s.id===id);csv='学籍番号,氏名,出欠状況,備考\n';S.students.forEach(st=>{const r=((S.records[id]||{})[st.id])||{};csv+=`"${st.id}","${st.name}","${td(r.status||null)}","${r.note||''}"\n`;});fn=`出欠_${ss?.name||id}_${ss?.date||''}.csv`;}else if(t==='matrix'){csv='学籍番号,氏名,'+S.sessions.map(s=>s.name).join(',')+'\n';S.students.forEach(st=>{csv+=[st.id,st.name,...S.sessions.map(ss=>td(((S.records[ss.id]||{})[st.id]||{}).status||null))].map(v=>`"${v}"`).join(',')+'\n';});fn=`出欠マトリクス_${today()}.csv`;}else{csv='学籍番号,氏名,出席回数,欠席回数,遅刻回数,公欠回数,出席率\n';S.students.forEach(st=>{let p=0,a=0,l=0,e=0;S.sessions.forEach(ss=>{const v=((S.records[ss.id]||{})[st.id]||{}).status;if(v==='present')p++;else if(v==='absent')a++;else if(v==='late')l++;else if(v==='excused')e++;});csv+=`"${st.id}","${st.name}",${p},${a},${l},${e},${Math.round((p+l)/Math.max(p+a+l+e,1)*100)}%\n`;});fn=`出欠サマリー_${today()}.csv`;}const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=fn;a.click();URL.revokeObjectURL(url);toast(`${fn} をダウンロードしました`);}
-function today(){return new Date().toISOString().slice(0,10);}
+function doExport(){const t=document.getElementById('expTarget').value;let csv='',fn='';const td=s=>SL[s]||'未入力';if(t==='sess'){const id=document.getElementById('expSess').value,ss=S.sessions.find(s=>s.id===id);csv='学籍番号,氏名,出欠状況,備考\n';S.students.forEach(st=>{const r=((S.records[id]||{})[st.id])||{};csv+=`"${st.id}","${st.name}","${td(r.status||null)}","${r.note||''}"\n`;});fn=`出欠_${ss?.name||id}.csv`;}else if(t==='matrix'){csv='学籍番号,氏名,'+S.sessions.map(s=>s.name).join(',')+'\n';S.students.forEach(st=>{csv+=[st.id,st.name,...S.sessions.map(ss=>td(((S.records[ss.id]||{})[st.id]||{}).status||null))].map(v=>`"${v}"`).join(',')+'\n';});fn='出欠マトリクス.csv';}else{csv='学籍番号,氏名,出席回数,欠席回数,遅刻回数,公欠回数,出席率\n';S.students.forEach(st=>{let p=0,a=0,l=0,e=0;S.sessions.forEach(ss=>{const v=((S.records[ss.id]||{})[st.id]||{}).status;if(v==='present')p++;else if(v==='absent')a++;else if(v==='late')l++;else if(v==='excused')e++;});csv+=`"${st.id}","${st.name}",${p},${a},${l},${e},${Math.round((p+l)/Math.max(p+a+l+e,1)*100)}%\n`;});fn='出欠サマリー.csv';}const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=fn;a.click();URL.revokeObjectURL(url);toast(`${fn} をダウンロードしました`);}
 
+// manage
 function renderManage(){
   const n=S.students.length;document.getElementById('stuCount').textContent=n?`（${n}名）`:'';
-  document.getElementById('stuList').innerHTML=n?S.students.map((st,i)=>`<div class="smrow"><div class="av" style="background:${st.color};width:32px;height:32px;font-size:13px">${st.name.charAt(0)}</div><span style="font-size:14px;font-weight:500;flex:1">${st.name}</span><span style="font-size:12px;color:var(--tl)">${st.id}</span><div class="del-wrap" id="dw-s-${i}"><button class="btn bsm bd" onclick="armDel('s',${i})">削除</button><span class="confirm-hint">もう一度で削除</span></div></div>`).join(''):'<div class="empty" style="padding:20px">学生が登録されていません</div>';
-  const sid=document.getElementById('sessEl').value;document.getElementById('sessList').innerHTML=S.sessions.map((s,i)=>`<div class="si ${s.id===sid?'asi':''}"><span class="sn2">${s.name}</span><span class="sd">${s.date||'日付未設定'}</span><span class="sc2">${cntRec(s.id)} / ${S.students.length} 入力済</span><div class="del-wrap" id="dw-ss-${i}"><button class="btn bsm bd" onclick="armDel('ss',${i})">削除</button><span class="confirm-hint">もう一度で削除</span></div></div>`).join('')||'<div class="empty" style="padding:16px">授業回が登録されていません</div>';
+  document.getElementById('stuList').innerHTML=n?S.students.map((st,i)=>`<div class="smrow"><div class="av" style="background:${st.color};width:32px;height:32px;font-size:13px">${st.name.charAt(0)}</div><span style="font-size:14px;font-weight:500;flex:1">${st.name}</span><span style="font-size:12px;color:var(--tl)">${st.id}</span><div class="del-wrap" id="dw-s-${i}"><button class="btn bsm bd" onclick="armDel('s',${i})">削除</button><span class="confirm-hint">もう一度で削除</span></div></div>`).join(''):'<div class="empty" style="padding:16px">学生が登録されていません</div>';
+  const sid=document.getElementById('sessEl').value;
+  document.getElementById('sessList').innerHTML=S.sessions.map((s,i)=>`<div class="si ${s.id===sid?'asi':''}"><span class="sn2">${s.name}</span><span class="sd">${s.date||'日付未設定'}</span><span class="sc2">${cntRec(s.id)}/${S.students.length}</span><div class="del-wrap" id="dw-ss-${i}"><button class="btn bsm bd" onclick="armDel('ss',${i})">削除</button><span class="confirm-hint">もう一度で削除</span></div></div>`).join('')||'<div class="empty" style="padding:12px">授業回が登録されていません</div>';
 }
 function cntRec(sid){return Object.values(S.records[sid]||{}).filter(r=>r.status).length;}
 
 const armed={};
 function armDel(type,i){const key=`${type}-${i}`,wrap=document.getElementById(`dw-${type}-${i}`);if(armed[key]){clearTimeout(armed[key]);delete armed[key];wrap.classList.remove('armed');if(type==='s')delStu(i);else delSess(i);}else{wrap.classList.add('armed');armed[key]=setTimeout(()=>{wrap.classList.remove('armed');delete armed[key];},3000);}}
-function delStu(i){const st=S.students[i];S.students.splice(i,1);Object.keys(S.records).forEach(sid=>{delete(S.records[sid]||{})[st.id];});save();renderManage();renderSessEl();const c=document.getElementById('sessEl').value;if(c){renderAlist(c);updateStats(c);}toast(`${st.name} を削除しました`);}
-function delSess(i){const s=S.sessions[i];S.sessions.splice(i,1);delete S.records[s.id];save();renderManage();renderSessEl();const f=S.sessions[0];if(f){document.getElementById('sessEl').value=f.id;loadSess();}else{document.getElementById('alist').innerHTML='<div class="empty">授業回を選択してください</div>';updateStats('');}toast(`「${s.name}」を削除しました`);}
-function addStu(){const id=document.getElementById('nSid').value.trim(),name=document.getElementById('nSname').value.trim();if(!id||!name){toast('学籍番号と氏名を入力してください');return;}if(S.students.find(s=>s.id===id)){toast('この学籍番号はすでに登録済みです');return;}S.students.push({id,name,color:COLORS[S.students.length%COLORS.length]});document.getElementById('nSid').value='';document.getElementById('nSname').value='';save();renderManage();renderSessEl();toast(`${name} を追加しました`);}
-function addSess(){const name=document.getElementById('nSsName').value.trim(),date=document.getElementById('nSsDate').value;if(!name){toast('授業回名を入力してください');return;}const id='s'+Date.now();S.sessions.push({id,name,date});S.records[id]={};document.getElementById('nSsName').value='';document.getElementById('nSsDate').value='';save();renderManage();renderSessEl();renderReport();toast(`「${name}」を追加しました`);}
+
+async function delStu(i){
+  const st=S.students[i];toast('削除中...');
+  try{
+    await spDel(listIds.students,st._id);
+    // delete related records
+    for(const sid of Object.keys(S.records)){
+      const rec=S.records[sid][st.id];
+      if(rec?._id) await spDel(listIds.records,rec._id).catch(()=>{});
+      delete(S.records[sid]||{})[st.id];
+    }
+    S.students.splice(i,1);
+    renderManage();renderSessEl();
+    const c=document.getElementById('sessEl').value;if(c){renderAlist(c);updateStats(c);}
+    toast(`${st.name} を削除しました`);
+  }catch(e){toast('削除エラー: '+e.message);}
+}
+async function delSess(i){
+  const s=S.sessions[i];toast('削除中...');
+  try{
+    await spDel(listIds.sessions,s._id);
+    const recs=Object.values(S.records[s.id]||{});
+    for(const r of recs) if(r._id) await spDel(listIds.records,r._id).catch(()=>{});
+    delete S.records[s.id];S.sessions.splice(i,1);
+    renderManage();renderSessEl();
+    const f=S.sessions[0];
+    if(f){document.getElementById('sessEl').value=f.id;loadSess();}
+    else{document.getElementById('alist').innerHTML='<div class="empty">授業回を選択してください</div>';updateStats('');}
+    toast(`「${s.name}」を削除しました`);
+  }catch(e){toast('削除エラー: '+e.message);}
+}
+
+async function addStu(){
+  const id=document.getElementById('nSid').value.trim(),name=document.getElementById('nSname').value.trim();
+  if(!id||!name){toast('学籍番号と氏名を入力してください');return;}
+  if(S.students.find(s=>s.id===id)){toast('この学籍番号はすでに登録済みです');return;}
+  const color=COLORS[S.students.length%COLORS.length];
+  toast('追加中...');
+  try{
+    const _id=await spAdd(listIds.students,{Title:name,StudentId:id,Color:color,TeamsId:''});
+    S.students.push({_id,id,name,color,teamsId:''});
+    document.getElementById('nSid').value='';document.getElementById('nSname').value='';
+    renderManage();renderSessEl();toast(`${name} を追加しました`);
+  }catch(e){toast('追加エラー: '+e.message);}
+}
+
+async function addSess(){
+  const name=document.getElementById('nSsName').value.trim(),date=document.getElementById('nSsDate').value;
+  if(!name){toast('授業回名を入力してください');return;}
+  toast('追加中...');
+  try{
+    const _id=await spAdd(listIds.sessions,{Title:name,SessionDate:date});
+    S.sessions.push({_id,id:_id,name,date});S.records[_id]={};
+    document.getElementById('nSsName').value='';document.getElementById('nSsDate').value='';
+    renderManage();renderSessEl();renderReport();toast(`「${name}」を追加しました`);
+  }catch(e){toast('追加エラー: '+e.message);}
+}
+
 function armReset(t){document.getElementById('rc-'+t).style.display='block';}
 function cancelReset(t){document.getElementById('rc-'+t).style.display='none';}
-function execReset(t){if(t==='students'){S.students=[];S.records={};save();init();toast('学生データをリセットしました');}else{S={students:[],sessions:[],records:{}};save();init();toast('全データをリセットしました');}document.getElementById('rc-'+t).style.display='none';}
+async function execReset(t){
+  toast('削除中...');
+  document.getElementById('rc-'+t).style.display='none';
+  try{
+    if(t==='students'||t==='all'){
+      for(const st of S.students) await spDel(listIds.students,st._id).catch(()=>{});
+      const allRec=[].concat(...Object.values(S.records).map(o=>Object.values(o)));
+      for(const r of allRec) if(r._id) await spDel(listIds.records,r._id).catch(()=>{});
+      S.students=[];S.records={};
+    }
+    if(t==='all'){
+      for(const ss of S.sessions) await spDel(listIds.sessions,ss._id).catch(()=>{});
+      S.sessions=[];
+    }
+    renderManage();renderSessEl();
+    const c=document.getElementById('sessEl').value;if(c){renderAlist(c);updateStats(c);}
+    toast('削除しました');
+  }catch(e){toast('エラー: '+e.message);}
+}
 
+// Teams picker
+async function openTeamsPicker(){
+  if(!teamsReady){toast('Teamsのタブ内でのみ使用できます');return;}
+  try{
+    const people=await microsoftTeams.people.selectPeople({title:'追加する学生を選択',singleSelect:false,openOrgWideSearchInChatOrChannel:true,setSelected:[]});
+    if(!people?.length){toast('選択がキャンセルされました');return;}
+    let added=0,skip=0;
+    for(const p of people){
+      const name=p.displayName||'';
+      const id=(p.email||p.userPrincipalName||'').split('@')[0]||name.replace(/\s/g,'_').slice(0,12);
+      if(!name||S.students.find(s=>s.name===name||(id&&s.id===id))){skip++;continue;}
+      const color=COLORS[S.students.length%COLORS.length];
+      toast('追加中...');
+      try{
+        const _id=await spAdd(listIds.students,{Title:name,StudentId:id,Color:color,TeamsId:p.objectId||''});
+        S.students.push({_id,id,name,color,teamsId:p.objectId||''});added++;
+      }catch(e){}
+    }
+    renderManage();renderSessEl();
+    const c=document.getElementById('sessEl').value;if(c){renderAlist(c);updateStats(c);}
+    toast(`✅ ${added}名を追加${skip?`（${skip}名スキップ）`:''}`);
+  }catch(e){toast('エラー: '+e.message);}
+}
+
+// CSV import
 function onImportFile(e){const f=e.target.files[0];if(!f)return;const ext=f.name.split('.').pop().toLowerCase(),r=new FileReader();if(ext==='csv'){r.onload=ev=>parseCSV(ev.target.result);r.readAsText(f,'UTF-8');}else{r.onload=ev=>{const wb=XLSX.read(ev.target.result,{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]];processRaw(XLSX.utils.sheet_to_json(ws,{header:1,defval:''}));};r.readAsArrayBuffer(f);}}
 function parseCSV(txt){const lines=txt.split(/\r?\n/).filter(l=>l.trim()),data=lines.map(line=>{const c=[];let cur='',q=false;for(const ch of line){if(ch==='"')q=!q;else if(ch===','&&!q){c.push(cur.trim());cur='';}else cur+=ch;}c.push(cur.trim());return c;});processRaw(data);}
-function processRaw(data){if(data.length<2){toast('データが少なすぎます');return;}iHeaders=data[0].map(h=>String(h).trim());iRows=data.slice(1).filter(r=>r.some(c=>String(c).trim()));const ni=best(iHeaders,['名前','氏名','表示名','name','displayname','display name','fullname']),ii=best(iHeaders,['メールアドレス','メール','学籍番号','email','upn','mail','id','username']),ri=best(iHeaders,['ロール','役割','role','type']);['cName','cId','cRole'].forEach((id,k)=>{const sel=document.getElementById(id),isR=k===2;sel.innerHTML=(isR?'<option value="">なし</option>':'')+iHeaders.map((h,j)=>`<option value="${j}">${h||'列'+(j+1)}</option>`).join('');});document.getElementById('cName').value=ni>=0?ni:0;document.getElementById('cId').value=ii>=0?ii:(ni>=0?0:1);if(ri>=0){document.getElementById('cRole').value=ri;document.getElementById('rfWrap').style.display='';}else{document.getElementById('cRole').value='';document.getElementById('rfWrap').style.display='none';}document.getElementById('iprev').style.display='';prevRefresh();}
+function processRaw(data){if(data.length<2){toast('データが少なすぎます');return;}iHeaders=data[0].map(h=>String(h).trim());iRows=data.slice(1).filter(r=>r.some(c=>String(c).trim()));const ni=best(iHeaders,['名前','氏名','表示名','name','displayname','display name']),ii=best(iHeaders,['メールアドレス','メール','学籍番号','email','upn','mail','id']),ri=best(iHeaders,['ロール','役割','role','type']);['cName','cId','cRole'].forEach((id,k)=>{const sel=document.getElementById(id),isR=k===2;sel.innerHTML=(isR?'<option value="">なし</option>':'')+iHeaders.map((h,j)=>`<option value="${j}">${h||'列'+(j+1)}</option>`).join('');});document.getElementById('cName').value=ni>=0?ni:0;document.getElementById('cId').value=ii>=0?ii:0;if(ri>=0){document.getElementById('cRole').value=ri;document.getElementById('rfWrap').style.display='';}else{document.getElementById('cRole').value='';document.getElementById('rfWrap').style.display='none';}document.getElementById('iprev').style.display='';prevRefresh();}
 function best(h,kws){for(const kw of kws){const i=h.findIndex(x=>x.toLowerCase().replace(/\s/g,'').includes(kw.toLowerCase().replace(/\s/g,'')));if(i>=0)return i;}return-1;}
 function filteredRows(){const ni=+document.getElementById('cName').value,ri=document.getElementById('cRole').value,rf=document.getElementById('rfVal').value;return iRows.filter(r=>{if(ri!==''&&rf==='m'){const role=String(r[+ri]||'').toLowerCase();if(role.includes('owner')||role.includes('所有者')||role.includes('teacher')||role.includes('教師'))return false;}return String(r[ni]||'').trim().length>0;});}
-function prevRefresh(){const ri=document.getElementById('cRole').value;document.getElementById('rfWrap').style.display=ri!==''?'':'none';const ni=+document.getElementById('cName').value,ii=document.getElementById('cId').value,rows=filteredRows();document.getElementById('prevBody').innerHTML=rows.slice(0,30).map(r=>`<tr><td>${String(r[ni]||'').trim()}</td><td>${ii!==''?String(r[+ii]||'').trim():'（自動採番）'}</td><td>${ri!==''?String(r[+document.getElementById('cRole').value]||'').trim():''}</td></tr>`).join('')||'<tr><td colspan="3" style="text-align:center;color:var(--tl);padding:12px">該当なし</td></tr>';document.getElementById('prevCount').textContent=`${rows.length} 名を読み込み予定`;}
-function doImport(){const ni=+document.getElementById('cName').value,ii=document.getElementById('cId').value,rows=filteredRows();let added=0,skip=0;rows.forEach((r,idx)=>{const name=String(r[ni]||'').trim();if(!name)return;let id=ii!==''?String(r[+ii]||'').trim():'';if(!id||id===name)id=name.replace(/\s+/g,'_').slice(0,12)||`ST${String(idx+1).padStart(3,'0')}`;else if(id.includes('@'))id=id.split('@')[0];if(S.students.find(s=>s.id===id||s.name===name)){skip++;return;}S.students.push({id,name,color:COLORS[S.students.length%COLORS.length]});added++;});save();renderManage();renderSessEl();cancelImport();toast(`✅ ${added}名を追加${skip?`（${skip}名は重複スキップ）`:''}`);const c=document.getElementById('sessEl').value;if(c){renderAlist(c);updateStats(c);}}
+function prevRefresh(){const ri=document.getElementById('cRole').value;document.getElementById('rfWrap').style.display=ri!==''?'':'none';const ni=+document.getElementById('cName').value,ii=document.getElementById('cId').value,rows=filteredRows();document.getElementById('prevBody').innerHTML=rows.slice(0,30).map(r=>`<tr><td>${String(r[ni]||'').trim()}</td><td>${ii!==''?String(r[+ii]||'').trim():'（自動）'}</td><td>${ri!==''?String(r[+document.getElementById('cRole').value]||'').trim():''}</td></tr>`).join('')||'<tr><td colspan="3" style="text-align:center;color:var(--tl);padding:12px">該当なし</td></tr>';document.getElementById('prevCount').textContent=`${rows.length}名予定`;}
+async function doImport(){
+  const ni=+document.getElementById('cName').value,ii=document.getElementById('cId').value,rows=filteredRows();
+  let added=0,skip=0;
+  for(const[idx,r] of rows.entries()){
+    const name=String(r[ni]||'').trim();if(!name)continue;
+    let id=ii!==''?String(r[+ii]||'').trim():'';
+    if(!id||id===name)id=name.replace(/\s+/g,'_').slice(0,12)||`ST${String(idx+1).padStart(3,'0')}`;
+    else if(id.includes('@'))id=id.split('@')[0];
+    if(S.students.find(s=>s.id===id||s.name===name)){skip++;continue;}
+    const color=COLORS[S.students.length%COLORS.length];
+    try{const _id=await spAdd(listIds.students,{Title:name,StudentId:id,Color:color,TeamsId:''});S.students.push({_id,id,name,color,teamsId:''});added++;}catch(e){}
+  }
+  renderManage();renderSessEl();cancelImport();
+  toast(`✅ ${added}名を追加${skip?`（${skip}名スキップ）`:''}`);
+}
 function cancelImport(){document.getElementById('iprev').style.display='none';document.getElementById('ifile').value='';iRows=[];iHeaders=[];}
 
 const ib=document.getElementById('ibox');
@@ -414,9 +749,8 @@ ib.addEventListener('dragover',e=>{e.preventDefault();ib.style.background='#d0d0
 ib.addEventListener('dragleave',()=>{ib.style.background='';});
 ib.addEventListener('drop',e=>{e.preventDefault();ib.style.background='';const f=e.dataTransfer.files[0];if(f){const dt=new DataTransfer();dt.items.add(f);document.getElementById('ifile').files=dt.files;onImportFile({target:{files:dt.files}});}});
 
-loadS();
-if(!S.students.length&&!S.sessions.length)loadSample();
-else init();
+// Start
+init();
 </script>
 </body>
 </html>
