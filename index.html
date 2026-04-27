@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>出欠管理</title>
 <script src="https://res.cdn.office.net/teams-js/2.22.0/js/MicrosoftTeams.min.js"></script>
-<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<!-- MSAL removed: using built-in PKCE OAuth instead -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{color-scheme:light;--tp:#6264A7;--tpd:#464775;--tpl:#E8E8F0;--present:#107C10;--present-bg:#DFF6DD;--absent:#C50F1F;--absent-bg:#FDE7E9;--late:#D67D00;--late-bg:#FFF4CE;--excused:#0078D4;--excused-bg:#EFF6FC;--unset:#616161;--unset-bg:#F3F2F1;--border:#E1DFDD;--bg:#F5F5F5;--card:#fff;--text:#201F1E;--tl:#605E5C;--r:6px;--sh:0 2px 8px rgba(0,0,0,.08)}
@@ -298,7 +298,7 @@ const SL={present:'出席',absent:'欠席',late:'遅刻',excused:'公欠'};
 // ═══════════════════════════════════
 //  STATE
 // ═══════════════════════════════════
-let msalInst, graphToken=null, spSiteId=null;
+let graphToken=null, spSiteId=null;
 let listIds={students:null,sessions:null,records:null};
 let me={name:'',id:'',teamsId:'',isOwner:false};
 let S={students:[],sessions:[],records:{}};
@@ -306,39 +306,95 @@ let iRows=[],iHeaders=[];
 let teamsReady=false;
 
 // ═══════════════════════════════════
-//  MSAL
+//  PKCE OAuth (ライブラリ不要)
 // ═══════════════════════════════════
-async function initMSAL(){
-  msalInst = new msal.PublicClientApplication({
-    auth:{ clientId:CFG.clientId, authority:`https://login.microsoftonline.com/${CFG.tenantId}`, redirectUri:CFG.redirectUri },
-    cache:{ cacheLocation:'sessionStorage' }
-  });
-  // v2 does not need initialize()
-  const res = await msalInst.handleRedirectPromise();
-  if(res) graphToken = res.accessToken;
-  return msalInst.getAllAccounts();
+const SCOPES = ['User.Read','Sites.ReadWrite.All','offline_access'];
+const AUTH_BASE = `https://login.microsoftonline.com/${CFG.tenantId}/oauth2/v2.0`;
+
+function b64url(buf){
+  return btoa(String.fromCharCode(...new Uint8Array(buf)))
+    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+}
+function randStr(n=32){const a=new Uint8Array(n);crypto.getRandomValues(a);return b64url(a);}
+async function sha256b64url(s){
+  const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));
+  return b64url(b);
+}
+
+async function initAuth(){
+  // Handle redirect callback (auth code in URL fragment)
+  const hash=location.hash.slice(1);
+  const frag=new URLSearchParams(hash);
+  const code=frag.get('code'), err=frag.get('error');
+  if(err) throw new Error(frag.get('error_description')||err);
+  if(code){
+    history.replaceState(null,'',location.pathname);
+    const verifier=sessionStorage.getItem('pkce_v');
+    if(!verifier) throw new Error('PKCE verifier missing');
+    sessionStorage.removeItem('pkce_v');
+    const body=new URLSearchParams({
+      client_id:CFG.clientId,grant_type:'authorization_code',
+      code,redirect_uri:CFG.redirectUri,code_verifier:verifier,
+      scope:SCOPES.join(' ')
+    });
+    const r=await fetch(`${AUTH_BASE}/token`,{method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
+    if(!r.ok){const e=await r.json();throw new Error(e.error_description||'Token exchange failed');}
+    const d=await r.json();
+    saveTokens(d);
+    return true; // has token
+  }
+  // Check stored token
+  return !!await ensureToken(false);
+}
+
+function saveTokens(d){
+  sessionStorage.setItem('at',d.access_token);
+  sessionStorage.setItem('at_exp',Date.now()+(d.expires_in-60)*1000);
+  if(d.refresh_token) sessionStorage.setItem('rt',d.refresh_token);
+  if(d.id_token){
+    try{
+      const p=JSON.parse(atob(d.id_token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+      sessionStorage.setItem('me_name',p.name||p.preferred_username||'');
+      sessionStorage.setItem('me_id',p.oid||p.sub||'');
+      sessionStorage.setItem('me_upn',p.preferred_username||p.upn||'');
+    }catch(e){}
+  }
+}
+
+async function ensureToken(redirect=true){
+  const at=sessionStorage.getItem('at');
+  const exp=parseInt(sessionStorage.getItem('at_exp')||'0');
+  if(at && Date.now()<exp){ graphToken=at; return at; }
+
+  const rt=sessionStorage.getItem('rt');
+  if(rt){
+    const body=new URLSearchParams({
+      client_id:CFG.clientId,grant_type:'refresh_token',
+      refresh_token:rt,scope:SCOPES.join(' ')
+    });
+    try{
+      const r=await fetch(`${AUTH_BASE}/token`,{method:'POST',
+        headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
+      if(r.ok){const d=await r.json();saveTokens(d);graphToken=d.access_token;return d.access_token;}
+    }catch(e){}
+  }
+
+  if(redirect) await doLogin();
+  return null;
 }
 
 async function doLogin(){
-  try{
-    const res = await msalInst.loginPopup({ scopes:['User.Read','Sites.ReadWrite.All'] });
-    graphToken = res.accessToken;
-    bootApp();
-  }catch(e){
-    await msalInst.loginRedirect({ scopes:['User.Read','Sites.ReadWrite.All'] });
-  }
-}
-
-async function ensureToken(){
-  const accs = msalInst.getAllAccounts();
-  if(!accs.length) return null;
-  try{
-    const res = await msalInst.acquireTokenSilent({ scopes:['User.Read','Sites.ReadWrite.All'], account:accs[0] });
-    graphToken = res.accessToken;
-  }catch(e){
-    await msalInst.acquireTokenRedirect({ scopes:['User.Read','Sites.ReadWrite.All'] });
-  }
-  return graphToken;
+  const verifier=randStr(43);
+  const challenge=await sha256b64url(verifier);
+  sessionStorage.setItem('pkce_v',verifier);
+  const params=new URLSearchParams({
+    client_id:CFG.clientId,response_type:'code',
+    redirect_uri:CFG.redirectUri,scope:SCOPES.join(' '),
+    code_challenge:challenge,code_challenge_method:'S256',
+    response_mode:'fragment',prompt:'select_account'
+  });
+  location.href=`${AUTH_BASE}/authorize?${params}`;
 }
 
 // ═══════════════════════════════════
@@ -436,7 +492,13 @@ async function bootApp(){
     // Get current user
     setMsg('ユーザー情報を取得中...');
     await ensureToken();
-    const user=await G.get('/me?$select=displayName,id,userPrincipalName');
+    // Try to get user info from cached id_token first, then Graph API
+    const cachedName=sessionStorage.getItem('me_name');
+    const cachedId=sessionStorage.getItem('me_id');
+    const cachedUpn=sessionStorage.getItem('me_upn');
+    let user;
+    try{ user=await G.get('/me?$select=displayName,id,userPrincipalName'); }
+    catch(e){ user={displayName:cachedName||'User',id:cachedId||'',userPrincipalName:cachedUpn||''}; }
     me.name=user.displayName; me.id=user.id; me.upn=user.userPrincipalName;
 
     // Get Teams role
@@ -470,8 +532,8 @@ async function bootApp(){
 
 async function init(){
   try{
-    const accs=await initMSAL();
-    if(!accs.length){ showScreen('s-login'); return; }
+    const hasToken=await initAuth();
+    if(!hasToken){ showScreen('s-login'); return; }
     await bootApp();
   }catch(e){ setMsg('起動エラー: '+e.message); console.error(e); }
 }
