@@ -3,45 +3,37 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>出欠管理</title>
+<title>出欠管理 | Attendance Manager</title>
 <script src="https://res.cdn.office.net/teams-js/2.22.0/js/MicrosoftTeams.min.js"></script>
-<!-- MSAL removed: using built-in PKCE OAuth instead -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{color-scheme:light;--tp:#6264A7;--tpd:#464775;--tpl:#E8E8F0;--present:#107C10;--present-bg:#DFF6DD;--absent:#C50F1F;--absent-bg:#FDE7E9;--late:#D67D00;--late-bg:#FFF4CE;--excused:#0078D4;--excused-bg:#EFF6FC;--unset:#616161;--unset-bg:#F3F2F1;--border:#E1DFDD;--bg:#F5F5F5;--card:#fff;--text:#201F1E;--tl:#605E5C;--r:6px;--sh:0 2px 8px rgba(0,0,0,.08)}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-/* header */
 .hdr{background:var(--tp);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 6px rgba(0,0,0,.2)}
 .hdr h1{font-size:18px;font-weight:600}.hdr small{font-size:12px;opacity:.85;display:block;margin-top:2px}
 .user-chip{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:13px;background:rgba(255,255,255,.15);padding:5px 12px;border-radius:20px}
 .user-chip .role-badge{font-size:10px;background:rgba(255,255,255,.25);padding:2px 7px;border-radius:10px;font-weight:600}
-/* tabs */
 .tabs{background:#fff;border-bottom:2px solid var(--border);display:flex;padding:0 20px}
 .tb{padding:12px 20px;border:none;background:none;cursor:pointer;font-size:14px;font-weight:500;color:var(--tl);border-bottom:3px solid transparent;margin-bottom:-2px;transition:.15s;white-space:nowrap}
 .tb:hover{color:var(--tp)}.tb.on{color:var(--tp);border-bottom-color:var(--tp)}
-/* layout */
 .main{padding:20px;max-width:1100px;margin:0 auto}
 .pnl{display:none}.pnl.on{display:block}
 .card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);border:1px solid var(--border);padding:20px;margin-bottom:16px}
 .ct{font-size:15px;font-weight:600;color:var(--tpd);margin-bottom:14px;display:flex;align-items:center;gap:8px}
-/* forms */
 .sbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .sbar label{font-size:13px;color:var(--tl);font-weight:500}
 select,input[type=text],input[type=date]{padding:7px 10px;border:1px solid var(--border);border-radius:var(--r);font-size:14px;color:var(--text);background:#fff;outline:none;transition:.15s}
 select:focus,input:focus{border-color:var(--tp)}select{min-width:160px}
-/* buttons */
 .btn{padding:7px 16px;border-radius:var(--r);border:none;cursor:pointer;font-size:13px;font-weight:500;transition:.15s;display:inline-flex;align-items:center;gap:6px}
 .btn:hover{opacity:.85}.btn:disabled{opacity:.4;cursor:not-allowed}
 .bp{background:var(--tp);color:#fff}.bs{background:var(--tpl);color:var(--tpd)}
 .bd{background:var(--absent-bg);color:var(--absent)}.bg2{background:var(--present-bg);color:var(--present)}
 .bsm{padding:4px 10px;font-size:12px}.barm{background:#C50F1F;color:#fff}
-/* stats */
 .srow{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:16px}
 .sc{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;text-align:center}
 .sn{font-size:26px;font-weight:700}.sl{font-size:11px;color:var(--tl);margin-top:4px}
 .sc.sp .sn{color:var(--present)}.sc.sa .sn{color:var(--absent)}.sc.sl2 .sn{color:var(--late)}.sc.se .sn{color:var(--excused)}.sc.st .sn{color:var(--tp)}
-/* attendance list */
 .alist{display:flex;flex-direction:column;gap:8px}
 .arow{display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r);background:#fff;transition:.15s}
 .arow.saving{opacity:.6}
@@ -57,43 +49,19 @@ select:focus,input:focus{border-color:var(--tp)}select{min-width:160px}
 .ni{padding:4px 8px;font-size:12px;width:120px;border:1px solid var(--border);border-radius:var(--r)}
 .bbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
 .bbar span{font-size:12px;color:var(--tl)}
-/* tables */
 .tw{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:13px}
 thead tr{background:var(--tpl)}
 th{padding:10px 12px;text-align:left;font-weight:600;color:var(--tpd);white-space:nowrap;border-bottom:2px solid var(--border)}
 td{padding:9px 12px;border-bottom:1px solid var(--border)}
 tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
-.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
-.bp2{background:var(--present-bg);color:var(--present)}.ba2{background:var(--absent-bg);color:var(--absent)}
-.bl2{background:var(--late-bg);color:var(--late)}.be2{background:var(--excused-bg);color:var(--excused)}.bu2{background:var(--unset-bg);color:var(--unset)}
-.rbw{display:flex;align-items:center;gap:6px}
-.rb{flex:1;height:6px;background:var(--border);border-radius:3px;min-width:60px}
-.rf{height:100%;border-radius:3px;background:var(--present)}
-/* manage */
-.smrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--border)}
-.smrow:last-child{border-bottom:none}
-.af{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
-.af .fld,.cmap .fld{display:flex;flex-direction:column;gap:4px}
-.af label,.cmap label{font-size:11px;color:var(--tl);font-weight:500}
-.af input{width:140px}
-.slist{display:flex;flex-direction:column;gap:6px}
-.si{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--r);background:#fff}
-.si .sn2{flex:1;font-size:14px;font-weight:500}.si .sd{font-size:12px;color:var(--tl)}.si .sc2{font-size:12px;color:var(--tp);font-weight:600}
-.asi{border-color:var(--tp)!important;background:var(--tpl)!important}
-/* del 2-step */
-.del-wrap{display:inline-flex;align-items:center;gap:4px}
-.confirm-hint{font-size:11px;color:var(--absent);display:none;white-space:nowrap}
-.del-wrap.armed .confirm-hint{display:inline}
-/* report */
 .rc{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
-/* import */
 .ibox{border:2px dashed var(--tp);border-radius:var(--r);padding:24px 20px;text-align:center;background:var(--tpl);cursor:pointer;transition:.15s}
 .ibox:hover{background:#d8d8ec}.ibox input[type=file]{display:none}
 .ibox .iico{font-size:32px;margin-bottom:6px}.ibox p{color:var(--tpd);font-size:14px;font-weight:500}.ibox small{color:var(--tl);font-size:12px}
 .iprev{margin-top:12px}.iprev h4{font-size:13px;font-weight:600;color:var(--tpd);margin-bottom:10px}
 .cmap{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;padding:12px;background:#f9f9fb;border-radius:var(--r);border:1px solid var(--border)}
-.cmap label{font-size:11px;color:var(--tl);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+.cmap label{font-size:11px;color:var(--tl);font-weight:600}
 .cmap select{min-width:140px;font-size:13px}
 .ptw{max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r)}
 .pt{width:100%;border-collapse:collapse;font-size:12px}
@@ -101,7 +69,14 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
 .pt td{padding:5px 10px;border-bottom:1px solid var(--border)}
 .ia{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
 .ic{font-size:13px;color:var(--tl)}
-/* student view */
+.af{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.af .fld,.cmap .fld{display:flex;flex-direction:column;gap:4px}
+.af label,.cmap label{font-size:11px;color:var(--tl);font-weight:500}
+.af input{width:140px}
+.slist{display:flex;flex-direction:column;gap:6px}
+.sitem{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--r);background:#fff}
+.mdiv{display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--tl);font-size:12px}
+.mdiv::before,.mdiv::after{content:'';flex:1;height:1px;background:var(--border)}
 .stu-hero{background:linear-gradient(135deg,var(--tp),#5b5ea6);color:#fff;border-radius:var(--r);padding:28px;margin-bottom:20px;display:flex;align-items:center;gap:20px}
 .stu-av{width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;flex-shrink:0}
 .stu-rate{font-size:42px;font-weight:700;margin-bottom:4px}
@@ -109,7 +84,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
 .stu-sess-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--r);background:#fff;margin-bottom:8px}
 .stu-sess-name{flex:1;font-weight:500}
 .stu-sess-date{font-size:12px;color:var(--tl)}
-/* screens */
+.sbadge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
 .screen{display:none;min-height:100vh}
 .screen.on{display:flex;flex-direction:column}
 .center-box{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;text-align:center}
@@ -120,15 +95,9 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
 .login-card p{font-size:14px;color:var(--tl);margin-bottom:24px;line-height:1.6}
 .btn-ms{background:#0078D4;color:#fff;padding:12px 24px;font-size:15px;font-weight:600;border-radius:6px;width:100%;justify-content:center}
 .btn-ms svg{width:20px;height:20px}
-/* empty */
 .empty{text-align:center;padding:40px;color:var(--tl);font-size:14px}
-/* method divider */
-.mdiv{display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--tl);font-size:12px}
-.mdiv::before,.mdiv::after{content:'';flex:1;height:1px;background:var(--border)}
-/* toast */
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#323130;color:#fff;padding:10px 20px;border-radius:6px;font-size:13px;opacity:0;pointer-events:none;transition:.3s;z-index:9999;white-space:nowrap}
 #toast.on{opacity:1}
-/* not-found */
 .not-found{text-align:center;padding:60px 20px}
 .not-found .icon{font-size:48px;margin-bottom:16px}
 .not-found h3{font-size:18px;color:var(--tpd);margin-bottom:8px}
@@ -137,7 +106,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
 </head>
 <body>
 
-<!-- ══ SCREEN: Loading ══ -->
+<!-- Loading -->
 <div id="s-loading" class="screen on">
   <div class="center-box">
     <div class="spin"></div>
@@ -145,7 +114,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
   </div>
 </div>
 
-<!-- ══ SCREEN: Login ══ -->
+<!-- Login -->
 <div id="s-login" class="screen">
   <div class="center-box">
     <div class="login-card">
@@ -160,21 +129,20 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
   </div>
 </div>
 
-<!-- ══ SCREEN: Teacher ══ -->
+<!-- Teacher -->
 <div id="s-teacher" class="screen">
   <div class="hdr">
-    <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="6" fill="white" fill-opacity=".15"/><path d="M7 8h14v2H7V8zm0 5h10v2H7v-2zm0 5h14v2H7v-2z" fill="white"/><circle cx="22" cy="13" r="4" fill="#107C10"/><path d="M20.5 13l1 1 2-2" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    <div><h1>出欠管理</h1><small>Microsoft Teams 出席管理アプリ</small></div>
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="6" fill="white" fill-opacity=".15"/><path d="M7 8h14v2H7V8zm0 5h10v2H7v-2zm0 5h14v2H7v-2z" fill="white"/></svg>
+    <div><h1>出欠管理</h1><small>Attendance Manager</small></div>
     <div class="user-chip"><span id="t-username">--</span><span class="role-badge">先生</span></div>
   </div>
   <div class="tabs">
-    <button class="tb on"  onclick="sw('r',this)">📋 出欠登録</button>
-    <button class="tb"     onclick="sw('o',this)">📊 出席一覧</button>
-    <button class="tb"     onclick="sw('p',this)">📄 レポート</button>
-    <button class="tb"     onclick="sw('m',this)">⚙️ 管理</button>
+    <button class="tb on" onclick="sw('r',this)">📋 出欠登録</button>
+    <button class="tb" onclick="sw('o',this)">📊 出席一覧</button>
+    <button class="tb" onclick="sw('p',this)">📄 レポート</button>
+    <button class="tb" onclick="sw('m',this)">⚙️ 管理</button>
   </div>
   <div class="main">
-
     <!-- 出欠登録 -->
     <div id="pnl-r" class="pnl on">
       <div class="card">
@@ -198,13 +166,11 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
         <div class="alist" id="alist"><div class="empty">授業回を選択してください</div></div>
       </div>
     </div>
-
     <!-- 出席一覧 -->
     <div id="pnl-o" class="pnl">
       <div class="card"><div class="ct">📊 学生別出席率</div><div class="tw"><table><thead><tr><th>学籍番号</th><th>氏名</th><th>出席</th><th>欠席</th><th>遅刻</th><th>公欠</th><th>未入力</th><th>出席率</th></tr></thead><tbody id="ovBody"></tbody></table></div></div>
       <div class="card"><div class="ct">📅 授業回別</div><div class="tw"><table><thead><tr id="ovHead"></tr></thead><tbody id="ovMatrix"></tbody></table></div></div>
     </div>
-
     <!-- レポート -->
     <div id="pnl-p" class="pnl">
       <div class="card">
@@ -217,7 +183,6 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
       </div>
       <div class="card"><div class="ct">📈 集計サマリー</div><div id="repSum"></div></div>
     </div>
-
     <!-- 管理 -->
     <div id="pnl-m" class="pnl">
       <div class="card">
@@ -240,7 +205,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
         </details>
         <div class="mdiv">または</div>
         <details><summary style="cursor:pointer;font-size:14px;font-weight:500;color:var(--tpd);padding:6px 0">✏️ 手動で追加</summary>
-          <div style="margin-top:10px"><div class="af"><div class="fld"><label>学籍番号</label><input type="text" id="nSid" placeholder="S2024001" maxlength="20"></div><div class="fld"><label>氏名</label><input type="text" id="nSname" placeholder="山田 太郎"></div><button class="btn bp" style="margin-top:18px" onclick="addStu()">＋ 追加</button></div></div>
+          <div style="margin-top:10px"><div class="af"><div class="fld"><label>学籍番号</label><input type="text" id="nSid" placeholder="S2024001" maxlength="20"></div><div class="fld"><label>氏名</label><input type="text" id="nSname" placeholder="山田 太郎"></div><div class="fld"><label>メール（任意）</label><input type="text" id="nSemail" placeholder="s2024001@jindai.ac.jp"></div><button class="btn bp" style="margin-top:18px" onclick="addStu()">＋ 追加</button></div></div>
         </details>
         <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
           <div style="font-size:13px;font-weight:600;color:var(--tpd);margin-bottom:10px">登録済み学生 <span id="stuCount" style="font-weight:400;color:var(--tl)"></span></div>
@@ -262,265 +227,121 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#fafafa}
         <div id="rc-all" style="display:none;margin-top:12px;padding:12px;background:var(--absent-bg);border:1px solid #f4a7ac;border-radius:var(--r)"><p style="font-size:13px;color:var(--absent);margin-bottom:8px">⚠️ すべてのデータを削除します。元に戻せません。</p><div style="display:flex;gap:8px"><button class="btn barm" onclick="execReset('all')">はい、削除する</button><button class="btn bs" onclick="cancelReset('all')">キャンセル</button></div></div>
       </div>
     </div>
+  </div>
+</div>
 
-  </div><!-- /main -->
-</div><!-- /s-teacher -->
-
-<!-- ══ SCREEN: Student ══ -->
+<!-- Student -->
 <div id="s-student" class="screen">
   <div class="hdr">
-    <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="6" fill="white" fill-opacity=".15"/><path d="M7 8h14v2H7V8zm0 5h10v2H7v-2zm0 5h14v2H7v-2z" fill="white"/><circle cx="22" cy="13" r="4" fill="#107C10"/><path d="M20.5 13l1 1 2-2" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    <div><h1>出欠管理</h1><small>Microsoft Teams 出席管理アプリ</small></div>
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="6" fill="white" fill-opacity=".15"/><path d="M7 8h14v2H7V8zm0 5h10v2H7v-2zm0 5h14v2H7v-2z" fill="white"/></svg>
+    <div><h1>出欠管理</h1><small>Attendance Manager</small></div>
     <div class="user-chip"><span id="s-username">--</span><span class="role-badge" style="background:rgba(255,255,255,.2)">学生</span></div>
   </div>
-  <div class="main" id="s-student-main">
-    <!-- dynamically rendered -->
-  </div>
+  <div class="main" id="s-student-main"></div>
 </div>
 
 <div id="toast"></div>
 
-<script>
-// ═══════════════════════════════════
-//  CONFIG
-// ═══════════════════════════════════
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, OAuthProvider, signInWithRedirect, getRedirectResult, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, collection, doc, addDoc, getDocs, setDoc, deleteDoc, query, where } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+// ══ CONFIG ══════════════════════════════════════════
 const CFG = {
-  clientId:    'd19b1186-1582-46eb-9cec-757e626e9a28',
-  tenantId:    'f70e0fce-c226-41db-8de7-537e39bd2351',
-  siteUrl:     'https://jindai.sharepoint.com/sites/2026_1_4',
-  redirectUri: 'https://tomodemu-source.github.io/attendance-app/',
+  teacherEmail: 'tomodemu@jindai.ac.jp',
+  tenantId:     'f70e0fce-c226-41db-8de7-537e39bd2351',
+  firebase: {
+    apiKey:      'AIzaSyBQf3SGOeL9-kuuR8164tX37eQhaMbo2jY',
+    authDomain:  'attendance-app-td.firebaseapp.com',
+    projectId:   'attendance-app-td',
+    storageBucket: 'attendance-app-td.firebasestorage.app',
+    messagingSenderId: '941282118665',
+    appId:       '1:941282118665:web:c88dbd216d93e647343cd8',
+  }
 };
 
-const LIST = { students:'出欠_学生', sessions:'出欠_授業回', records:'出欠_記録' };
-const COLORS=['#6264A7','#0078D4','#038387','#107C10','#E8720C','#C239B3','#8764B8','#00B4D2'];
-const SL={present:'出席',absent:'欠席',late:'遅刻',excused:'公欠'};
+// ══ FIREBASE ════════════════════════════════════════
+const fbApp = initializeApp(CFG.firebase);
+const auth  = getAuth(fbApp);
+const db    = getFirestore(fbApp);
 
-// ═══════════════════════════════════
-//  STATE
-// ═══════════════════════════════════
-let graphToken=null, spSiteId=null;
-let listIds={students:null,sessions:null,records:null};
-let me={name:'',id:'',teamsId:'',isOwner:false};
-let S={students:[],sessions:[],records:{}};
-let iRows=[],iHeaders=[];
-let teamsReady=false;
+const msProvider = new OAuthProvider('microsoft.com');
+msProvider.setCustomParameters({ tenant: CFG.tenantId, prompt: 'select_account' });
+msProvider.addScope('User.Read');
 
-// ═══════════════════════════════════
-//  PKCE OAuth (ライブラリ不要)
-// ═══════════════════════════════════
-const SCOPES = ['User.Read','Sites.ReadWrite.All','offline_access'];
-const AUTH_BASE = `https://login.microsoftonline.com/${CFG.tenantId}/oauth2/v2.0`;
+// ══ STATE ═══════════════════════════════════════════
+const COLORS = ['#6264A7','#0078D4','#038387','#107C10','#E8720C','#C239B3','#8764B8','#00B4D2'];
+const SL = { present:'出席', absent:'欠席', late:'遅刻', excused:'公欠' };
+let me = { name:'', email:'', isTeacher:false };
+let S  = { students:[], sessions:[], records:{} };
+let iRows=[], iHeaders=[];
+let teamsReady = false;
+let tTimer;
 
-function b64url(buf){
-  return btoa(String.fromCharCode(...new Uint8Array(buf)))
-    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
-}
-function randStr(n=32){const a=new Uint8Array(n);crypto.getRandomValues(a);return b64url(a);}
-async function sha256b64url(s){
-  const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));
-  return b64url(b);
-}
+// ══ HELPERS ═════════════════════════════════════════
+function setMsg(m){ document.getElementById('load-msg').textContent = m; }
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); document.getElementById(id).classList.add('on'); }
+function toast(m){ const e=document.getElementById('toast'); e.textContent=m; e.classList.add('on'); clearTimeout(tTimer); tTimer=setTimeout(()=>e.classList.remove('on'),2400); }
 
-async function initAuth(){
-  // Handle redirect callback (auth code in URL fragment)
-  const hash=location.hash.slice(1);
-  const frag=new URLSearchParams(hash);
-  const code=frag.get('code'), err=frag.get('error');
-  if(err) throw new Error(frag.get('error_description')||err);
-  if(code){
-    history.replaceState(null,'',location.pathname);
-    const verifier=sessionStorage.getItem('pkce_v');
-    if(!verifier) throw new Error('PKCE verifier missing');
-    sessionStorage.removeItem('pkce_v');
-    const body=new URLSearchParams({
-      client_id:CFG.clientId,grant_type:'authorization_code',
-      code,redirect_uri:CFG.redirectUri,code_verifier:verifier,
-      scope:SCOPES.join(' ')
-    });
-    const r=await fetch(`${AUTH_BASE}/token`,{method:'POST',
-      headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
-    if(!r.ok){const e=await r.json();throw new Error(e.error_description||'Token exchange failed');}
-    const d=await r.json();
-    saveTokens(d);
-    return true; // has token
-  }
-  // Check stored token
-  return !!await ensureToken(false);
-}
+// ══ AUTH ════════════════════════════════════════════
+window.doLogin = async () => { await signInWithRedirect(auth, msProvider); };
 
-function saveTokens(d){
-  sessionStorage.setItem('at',d.access_token);
-  sessionStorage.setItem('at_exp',Date.now()+(d.expires_in-60)*1000);
-  if(d.refresh_token) sessionStorage.setItem('rt',d.refresh_token);
-  if(d.id_token){
-    try{
-      const p=JSON.parse(atob(d.id_token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
-      sessionStorage.setItem('me_name',p.name||p.preferred_username||'');
-      sessionStorage.setItem('me_id',p.oid||p.sub||'');
-      sessionStorage.setItem('me_upn',p.preferred_username||p.upn||'');
-    }catch(e){}
-  }
-}
-
-async function ensureToken(redirect=true){
-  const at=sessionStorage.getItem('at');
-  const exp=parseInt(sessionStorage.getItem('at_exp')||'0');
-  if(at && Date.now()<exp){ graphToken=at; return at; }
-
-  const rt=sessionStorage.getItem('rt');
-  if(rt){
-    const body=new URLSearchParams({
-      client_id:CFG.clientId,grant_type:'refresh_token',
-      refresh_token:rt,scope:SCOPES.join(' ')
-    });
-    try{
-      const r=await fetch(`${AUTH_BASE}/token`,{method:'POST',
-        headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
-      if(r.ok){const d=await r.json();saveTokens(d);graphToken=d.access_token;return d.access_token;}
-    }catch(e){}
-  }
-
-  if(redirect) await doLogin();
-  return null;
-}
-
-async function doLogin(){
-  const verifier=randStr(43);
-  const challenge=await sha256b64url(verifier);
-  sessionStorage.setItem('pkce_v',verifier);
-  const params=new URLSearchParams({
-    client_id:CFG.clientId,response_type:'code',
-    redirect_uri:CFG.redirectUri,scope:SCOPES.join(' '),
-    code_challenge:challenge,code_challenge_method:'S256',
-    response_mode:'fragment',prompt:'select_account'
-  });
-  location.href=`${AUTH_BASE}/authorize?${params}`;
-}
-
-// ═══════════════════════════════════
-//  GRAPH API
-// ═══════════════════════════════════
-async function gFetch(method,url,body){
-  await ensureToken();
-  const opts={method,headers:{Authorization:`Bearer ${graphToken}`,'Content-Type':'application/json'}};
-  if(body) opts.body=JSON.stringify(body);
-  const r=await fetch(`https://graph.microsoft.com/v1.0${url}`,opts);
-  if(!r.ok){ const t=await r.text(); throw new Error(`${method} ${url} → ${r.status}: ${t.slice(0,200)}`); }
-  return r.status===204?null:r.json();
-}
-const G={
-  get:url=>gFetch('GET',url),
-  post:(url,b)=>gFetch('POST',url,b),
-  patch:(url,b)=>gFetch('PATCH',url,b),
-  del:url=>gFetch('DELETE',url)
+// ══ FIRESTORE ═══════════════════════════════════════
+const fsGetAll = async (col) => {
+  const snap = await getDocs(collection(db, col));
+  return snap.docs.map(d => ({_id: d.id, ...d.data()}));
 };
+const fsQuery = async (col, field, op, val) => {
+  const snap = await getDocs(query(collection(db, col), where(field, op, val)));
+  return snap.docs.map(d => ({_id: d.id, ...d.data()}));
+};
+const fsAdd    = async (col, data) => (await addDoc(collection(db, col), data)).id;
+const fsUpdate = async (col, id, data) => setDoc(doc(db, col, id), data, {merge:true});
+const fsDel    = async (col, id) => deleteDoc(doc(db, col, id));
 
-// ═══════════════════════════════════
-//  SHAREPOINT
-// ═══════════════════════════════════
-async function getSiteId(){
-  if(spSiteId) return spSiteId;
-  const u=new URL(CFG.siteUrl);
-  const d=await G.get(`/sites/${u.hostname}:${u.pathname}`);
-  spSiteId=d.id; return spSiteId;
-}
-
-async function getOrCreateList(name,cols){
-  const sid=await getSiteId();
-  const res=await G.get(`/sites/${sid}/lists?$filter=displayName eq '${encodeURIComponent(name)}'&$select=id`);
-  if(res.value.length) return res.value[0].id;
-  const list=await G.post(`/sites/${sid}/lists`,{displayName:name,list:{template:'genericList'}});
-  for(const c of cols) await G.post(`/sites/${sid}/lists/${list.id}/columns`,c).catch(()=>{});
-  return list.id;
-}
-
-async function spGet(listId){
-  const sid=await getSiteId();
-  const data=await G.get(`/sites/${sid}/lists/${listId}/items?expand=fields&$top=5000&$select=id,fields`);
-  return data.value.map(i=>({_id:i.id,...i.fields}));
-}
-async function spAdd(listId,fields){
-  const sid=await getSiteId();
-  const d=await G.post(`/sites/${sid}/lists/${listId}/items`,{fields});
-  return d.id;
-}
-async function spUpdate(listId,itemId,fields){
-  const sid=await getSiteId();
-  await G.patch(`/sites/${sid}/lists/${listId}/items/${itemId}/fields`,fields);
-}
-async function spDel(listId,itemId){
-  const sid=await getSiteId();
-  await G.del(`/sites/${sid}/lists/${listId}/items/${itemId}`);
-}
-
-// ═══════════════════════════════════
-//  DATA LAYER
-// ═══════════════════════════════════
-async function ensureLists(){
-  setMsg('SharePointリストを確認中...');
-  const [si,ss,sr]=await Promise.all([
-    getOrCreateList(LIST.students,[{name:'StudentId',text:{}},{name:'Color',text:{}},{name:'TeamsId',text:{}}]),
-    getOrCreateList(LIST.sessions,[{name:'SessionDate',text:{}}]),
-    getOrCreateList(LIST.records, [{name:'SessionId',text:{}},{name:'StudentId',text:{}},{name:'Status',text:{}},{name:'Note',text:{}}])
-  ]);
-  listIds={students:si,sessions:ss,records:sr};
-}
-
+// ══ DATA LOADING ════════════════════════════════════
 async function loadAll(){
-  setMsg('データを読み込み中...');
-  const [stuItems,sessItems,recItems]=await Promise.all([
-    spGet(listIds.students),spGet(listIds.sessions),spGet(listIds.records)
-  ]);
-  S.students=stuItems.map(s=>({_id:s._id,id:s.StudentId||s.Title,name:s.Title,color:s.Color||COLORS[0],teamsId:s.TeamsId||''}));
-  S.sessions=sessItems.map(s=>({_id:s._id,id:s._id,name:s.Title,date:s.SessionDate||''}));
-  S.records={};
-  recItems.forEach(r=>{
-    if(!S.records[r.SessionId])S.records[r.SessionId]={};
-    S.records[r.SessionId][r.StudentId]={_id:r._id,status:r.Status||null,note:r.Note||''};
-  });
+  setMsg('データ読み込み中...');
+  S.students = (await fsGetAll('students')).map(s => ({...s, id: s.studentId||s._id}));
+  S.sessions  = (await fsGetAll('sessions')).sort((a,b) => (a.name||'').localeCompare(b.name||'','ja'));
+  S.records   = {};
+  const recs  = await fsGetAll('attendance');
+  for(const r of recs){
+    if(!S.records[r.sessionId]) S.records[r.sessionId] = {};
+    S.records[r.sessionId][r.studentId] = r;
+  }
 }
 
-// ═══════════════════════════════════
-//  BOOT
-// ═══════════════════════════════════
-function setMsg(m){document.getElementById('load-msg').textContent=m;}
-function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));document.getElementById(id).classList.add('on');}
-
-async function bootApp(){
+// ══ BOOT ════════════════════════════════════════════
+async function bootApp(user){
   showScreen('s-loading');
   try{
-    // Get current user
-    setMsg('ユーザー情報を取得中...');
-    await ensureToken();
-    // Try to get user info from cached id_token first, then Graph API
-    const cachedName=sessionStorage.getItem('me_name');
-    const cachedId=sessionStorage.getItem('me_id');
-    const cachedUpn=sessionStorage.getItem('me_upn');
-    let user;
-    try{ user=await G.get('/me?$select=displayName,id,userPrincipalName'); }
-    catch(e){ user={displayName:cachedName||'User',id:cachedId||'',userPrincipalName:cachedUpn||''}; }
-    me.name=user.displayName; me.id=user.id; me.upn=user.userPrincipalName;
+    me.name      = user.displayName || user.email;
+    me.email     = user.email;
+    me.isTeacher = user.email.toLowerCase() === CFG.teacherEmail.toLowerCase();
 
-    // Get Teams role
-    try{
-      await microsoftTeams.app.initialize();
-      teamsReady=true;
-      const ctx=await microsoftTeams.app.getContext();
-      me.isOwner=(ctx.team?.userRole==='Owner'||ctx.channel?.membershipType==='Owner');
-    }catch(e){ me.isOwner=true; } // fallback for browser dev
+    try{ await microsoftTeams.app.initialize(); teamsReady=true; }catch(e){}
 
-    // Ensure SP lists
-    await ensureLists();
-    await loadAll();
-
-    // Render
-    if(me.isOwner){
-      document.getElementById('t-username').textContent=me.name;
-      renderSessEl();renderManage();renderOverview();renderReport();
-      const v=document.getElementById('sessEl').value;if(v)loadSess();
+    if(me.isTeacher){
+      await loadAll();
+      document.getElementById('t-username').textContent = me.name;
+      renderSessEl(); renderManage(); renderOverview(); renderReport();
+      const v = document.getElementById('sessEl').value;
+      if(v) loadSess();
       showScreen('s-teacher');
     } else {
-      document.getElementById('s-username').textContent=me.name;
+      setMsg('出欠データ読み込み中...');
+      S.sessions = (await fsGetAll('sessions')).sort((a,b)=>(a.name||'').localeCompare(b.name||'','ja'));
+      const stus = await fsQuery('students','email','==',me.email);
+      S.students = stus.map(s => ({...s, id: s.studentId||s._id}));
+      const recs = await fsQuery('attendance','studentEmail','==',me.email);
+      S.records  = {};
+      for(const r of recs){
+        if(!S.records[r.sessionId]) S.records[r.sessionId] = {};
+        S.records[r.sessionId][r.studentId] = r;
+      }
+      document.getElementById('s-username').textContent = me.name;
       renderStudentView();
       showScreen('s-student');
     }
@@ -530,236 +351,273 @@ async function bootApp(){
   }
 }
 
-async function init(){
+// Auth state
+let _booted = false;
+onAuthStateChanged(auth, async (user) => {
+  if(_booted) return;
+  _booted = true;
   try{
-    const hasToken=await initAuth();
-    if(!hasToken){ showScreen('s-login'); return; }
-    await bootApp();
-  }catch(e){ setMsg('起動エラー: '+e.message); console.error(e); }
-}
+    const result = await getRedirectResult(auth);
+    const activeUser = result?.user || user;
+    if(activeUser){ await bootApp(activeUser); }
+    else{ showScreen('s-login'); }
+  }catch(e){
+    console.error(e);
+    setMsg('認証エラー: '+e.message);
+    showScreen('s-login');
+  }
+});
 
-// ═══════════════════════════════════
-//  STUDENT VIEW
-// ═══════════════════════════════════
+// ══ STUDENT VIEW ════════════════════════════════════
 function renderStudentView(){
-  const main=document.getElementById('s-student-main');
-  // Find student by Teams ID or email prefix
-  const upnPrefix=(me.upn||'').split('@')[0].toLowerCase();
-  const stu=S.students.find(s=>
-    (s.teamsId&&s.teamsId===me.id)||
-    s.id.toLowerCase()===upnPrefix||
-    s.name===me.name
-  );
+  const main = document.getElementById('s-student-main');
+  const stu  = S.students[0];
   if(!stu){
     main.innerHTML=`<div class="not-found"><div class="icon">🔍</div><h3>学生リストに登録されていません</h3><p>先生に学生リストへの登録を依頼してください。<br>登録後、ページを再読み込みすると表示されます。</p></div>`;
     return;
   }
-  let p=0,a=0,l=0,e=0,total=0;
-  const sessRows=S.sessions.map(sess=>{
-    const rec=(S.records[sess.id]||{})[stu.id]||{};
-    const st=rec.status||null;
-    if(st){total++;if(st==='present')p++;else if(st==='absent')a++;else if(st==='late')l++;else if(st==='excused')e++;}
-    const bc=st?{'present':'bp2','absent':'ba2','late':'bl2','excused':'be2'}[st]:'bu2';
-    return`<div class="stu-sess-row"><span class="stu-sess-name">${sess.name}</span><span class="stu-sess-date">${sess.date||''}</span><span class="badge ${bc}">${st?SL[st]:'未入力'}</span>${rec.note?`<span style="font-size:11px;color:var(--tl)">${rec.note}</span>`:''}</div>`;
+  let p=0,a=0,l=0,e2=0;
+  const sessRows = S.sessions.map(ss => {
+    const r   = (S.records[ss._id]||{})[stu.id];
+    const st  = r?.status;
+    if(st==='present')p++; else if(st==='absent')a++; else if(st==='late')l++; else if(st==='excused')e2++;
+    const col = st ? `background:var(--${st}-bg);color:var(--${st})` : 'background:var(--unset-bg);color:var(--unset)';
+    const lbl = st ? SL[st] : '未入力';
+    const note= r?.note ? `<span style="font-size:11px;color:var(--tl);margin-left:8px">${r.note}</span>` : '';
+    return `<div class="stu-sess-row"><span class="stu-sess-name">${ss.name}</span><span class="stu-sess-date">${ss.date||''}</span><span class="sbadge" style="${col}">${lbl}</span>${note}</div>`;
   }).join('');
-  const rate=total>0?Math.round((p+l)/Math.max(p+a+l+e,1)*100):null;
-  main.innerHTML=`
-    <div class="stu-hero">
-      <div class="stu-av" style="background:${stu.color}">${stu.name.charAt(0)}</div>
-      <div style="flex:1"><div style="font-size:13px;opacity:.85;margin-bottom:4px">こんにちは</div><div style="font-size:20px;font-weight:700;margin-bottom:12px">${stu.name} さん</div>
-        <div style="display:flex;gap:20px;flex-wrap:wrap">
-          ${rate!==null?`<div><div class="stu-rate">${rate}%</div><div class="stu-rate-label">出席率</div></div>`:''}
-          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-            <div style="text-align:center"><div style="font-size:20px;font-weight:700">${p}</div><div style="font-size:11px;opacity:.8">出席</div></div>
-            <div style="text-align:center"><div style="font-size:20px;font-weight:700">${a}</div><div style="font-size:11px;opacity:.8">欠席</div></div>
-            <div style="text-align:center"><div style="font-size:20px;font-weight:700">${l}</div><div style="font-size:11px;opacity:.8">遅刻</div></div>
-            <div style="text-align:center"><div style="font-size:20px;font-weight:700">${e}</div><div style="font-size:11px;opacity:.8">公欠</div></div>
-          </div>
-        </div>
+  const total = p+a+l+e2;
+  const rate  = total>0 ? Math.round(((p+l)*100)/total) : 0;
+  main.innerHTML = `
+    <div class="main">
+      <div class="stu-hero">
+        <div class="stu-av">${stu.name.charAt(0)}</div>
+        <div><div style="font-size:13px;opacity:.85;margin-bottom:4px">${stu.id}</div><div style="font-size:22px;font-weight:700">${stu.name}</div></div>
+        <div style="margin-left:auto;text-align:right"><div class="stu-rate">${rate}%</div><div class="stu-rate-label">出席率（遅刻含む）</div></div>
       </div>
-    </div>
-    <div class="card"><div class="ct">📅 授業回別出欠状況</div>${S.sessions.length?sessRows:'<div class="empty">授業回がありません</div>'}</div>`;
+      <div class="srow">
+        <div class="sc sp"><div class="sn">${p}</div><div class="sl">出席</div></div>
+        <div class="sc sa"><div class="sn">${a}</div><div class="sl">欠席</div></div>
+        <div class="sc sl2"><div class="sn">${l}</div><div class="sl">遅刻</div></div>
+        <div class="sc se"><div class="sn">${e2}</div><div class="sl">公欠</div></div>
+      </div>
+      <div class="card"><div class="ct">📅 授業回別出欠状況</div>${S.sessions.length ? sessRows : '<div class="empty">授業回がありません</div>'}</div>
+    </div>`;
 }
 
-// ═══════════════════════════════════
-//  TEACHER UI
-// ═══════════════════════════════════
-let tTimer;
-function toast(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('on');clearTimeout(tTimer);tTimer=setTimeout(()=>e.classList.remove('on'),2400);}
-function sw(id,btn){document.querySelectorAll('.pnl').forEach(p=>p.classList.remove('on'));document.querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));document.getElementById('pnl-'+id).classList.add('on');btn.classList.add('on');if(id==='o')renderOverview();if(id==='p')renderReport();if(id==='m')renderManage();}
-function goNewSess(){sw('m',document.querySelectorAll('.tb')[3]);renderManage();setTimeout(()=>document.getElementById('nSsName').focus(),100);}
-
-function renderSessEl(){const s=document.getElementById('sessEl'),e=document.getElementById('expSess'),c=s.value;s.innerHTML=S.sessions.map(x=>`<option value="${x.id}">${x.name}（${x.date||'日付未設定'}）</option>`).join('')||'<option value="">授業回なし</option>';if(c&&S.sessions.find(x=>x.id===c))s.value=c;e.innerHTML=s.innerHTML;}
-function loadSess(){const id=document.getElementById('sessEl').value;if(!id)return;const s=S.sessions.find(x=>x.id===id);document.getElementById('dateEl').value=s?.date||'';if(!S.records[id])S.records[id]={};renderAlist(id);updateStats(id);}
-
-async function saveSessDate(){
-  const id=document.getElementById('sessEl').value;const d=document.getElementById('dateEl').value;
-  const s=S.sessions.find(x=>x.id===id);if(!s)return;
-  await spUpdate(listIds.sessions,s._id,{SessionDate:d});
-  s.date=d;renderSessEl();toast('日付を保存しました');
+// ══ TEACHER: SESSION SELECTOR ═══════════════════════
+function renderSessEl(){
+  const s = document.getElementById('sessEl');
+  const e = document.getElementById('expSess');
+  s.innerHTML = S.sessions.map(x=>`<option value="${x._id}">${x.name}（${x.date||'日付未設定'}）</option>`).join('') || '<option value="">授業回なし</option>';
+  e.innerHTML = s.innerHTML;
 }
+window.loadSess = () => {
+  const id = document.getElementById('sessEl').value;
+  if(!id) return;
+  const s = S.sessions.find(x=>x._id===id);
+  document.getElementById('dateEl').value = s?.date||'';
+  if(!S.records[id]) S.records[id]={};
+  renderAlist(id); updateStats(id);
+};
+window.saveSessDate = async () => {
+  const id = document.getElementById('sessEl').value;
+  const d  = document.getElementById('dateEl').value;
+  const s  = S.sessions.find(x=>x._id===id); if(!s) return;
+  await fsUpdate('sessions',id,{date:d}); s.date=d; renderSessEl(); toast('日付を保存しました');
+};
 
+// ══ TEACHER: ATTENDANCE LIST ════════════════════════
 function renderAlist(sid){
-  const el=document.getElementById('alist');
-  if(!S.students.length){el.innerHTML='<div class="empty">管理タブで学生を登録してください</div>';return;}
-  el.innerHTML=S.students.map(st=>{
-    const r=(S.records[sid]||{})[st.id]||{status:null,note:''};
-    return`<div class="arow" id="ar-${sid}-${st.id}">
+  const el = document.getElementById('alist');
+  if(!S.students.length){ el.innerHTML='<div class="empty">管理タブで学生を登録してください</div>'; return; }
+  el.innerHTML = S.students.map(st => {
+    const r = (S.records[sid]||{})[st.id]||{status:null,note:''};
+    return `<div class="arow" id="ar-${sid}-${st.id}">
       <div class="av" style="background:${st.color}">${st.name.charAt(0)}</div>
-      <div style="flex:1;min-width:0"><div class="an">${st.name}</div><div class="aid">${st.id}</div></div>
+      <div style="flex:1;min-width:0"><div class="an">${st.name}</div><div class="aid">${st.id}${st.email?' / '+st.email:''}</div></div>
       <div class="sbtns">${['present','absent','late','excused'].map(s=>`<button class="sbtn ${r.status===s?'s'+s.charAt(0):''}" onclick="setSt('${sid}','${st.id}','${s}',this)">${SL[s]}</button>`).join('')}</div>
       <input class="ni" type="text" placeholder="備考" value="${r.note||''}" onchange="setNote('${sid}','${st.id}',this.value)">
     </div>`;
   }).join('');
 }
-
-async function setSt(sid,uid,st,btn){
-  const row=document.getElementById(`ar-${sid}-${uid}`);row.classList.add('saving');
-  row.querySelectorAll('.sbtn').forEach(b=>b.disabled=true);
-  try{
-    if(!S.records[sid])S.records[sid]={};
-    const r=S.records[sid][uid]||{status:null,note:''};
-    const newSt=r.status===st?null:st;
-    if(r._id){ await spUpdate(listIds.records,r._id,{Status:newSt||''}); }
-    else{ const id=await spAdd(listIds.records,{Title:`${sid}_${uid}`,SessionId:sid,StudentId:uid,Status:newSt||'',Note:r.note||''});r._id=id; }
-    r.status=newSt;S.records[sid][uid]=r;
-    ['present','absent','late','excused'].forEach((s,i)=>{row.querySelectorAll('.sbtn')[i].className='sbtn'+(r.status===s?' s'+s.charAt(0):'');});
-    updateStats(sid);
-  }catch(e){toast('保存エラー: '+e.message);}
-  row.classList.remove('saving');row.querySelectorAll('.sbtn').forEach(b=>b.disabled=false);
-}
-
-async function setNote(sid,uid,note){
-  if(!S.records[sid])S.records[sid]={};
-  const r=S.records[sid][uid]||{status:null,note:''};
-  try{
-    if(r._id){ await spUpdate(listIds.records,r._id,{Note:note}); }
-    else{ const id=await spAdd(listIds.records,{Title:`${sid}_${uid}`,SessionId:sid,StudentId:uid,Status:r.status||'',Note:note});r._id=id; }
-    r.note=note;S.records[sid][uid]=r;
-  }catch(e){toast('備考保存エラー');}
-}
-
-async function bulk(st){
-  const id=document.getElementById('sessEl').value;if(!id)return;
-  if(!S.records[id])S.records[id]={};
-  toast('保存中...');
-  for(const s of S.students){
-    const r=S.records[id][s.id]||{status:null,note:''};
-    try{
-      if(r._id){await spUpdate(listIds.records,r._id,{Status:st||''});}
-      else{const nid=await spAdd(listIds.records,{Title:`${id}_${s.id}`,SessionId:id,StudentId:s.id,Status:st||'',Note:''});r._id=nid;}
-      r.status=st;S.records[id][s.id]=r;
-    }catch(e){}
+function updateStats(sid){
+  const recs=S.records[sid]||{};
+  let p=0,a=0,l=0,e2=0;
+  for(const st of S.students){
+    const r=recs[st.id];
+    if(r?.status==='present')p++; else if(r?.status==='absent')a++; else if(r?.status==='late')l++; else if(r?.status==='excused')e2++;
   }
-  renderAlist(id);updateStats(id);toast(st?`全員を「${SL[st]}」に設定しました`:'リセットしました');
+  document.getElementById('st0').textContent=S.students.length;
+  document.getElementById('st1').textContent=p;
+  document.getElementById('st2').textContent=a;
+  document.getElementById('st3').textContent=l;
+  document.getElementById('st4').textContent=e2;
 }
-
-function updateStats(sid){const r=S.records[sid]||{};let p=0,a=0,l=0,e=0;S.students.forEach(s=>{const v=(r[s.id]||{}).status;if(v==='present')p++;else if(v==='absent')a++;else if(v==='late')l++;else if(v==='excused')e++;});['st0','st1','st2','st3','st4'].forEach((id,i)=>{document.getElementById(id).textContent=[S.students.length,p,a,l,e][i];});}
-
-function renderOverview(){
-  document.getElementById('ovBody').innerHTML=S.students.map(st=>{let p=0,a=0,l=0,e=0,u=0;S.sessions.forEach(ss=>{const v=((S.records[ss.id]||{})[st.id]||{}).status;if(v==='present')p++;else if(v==='absent')a++;else if(v==='late')l++;else if(v==='excused')e++;else u++;});const rt=Math.round((p+l)/Math.max(p+a+l+e,1)*100);return`<tr><td>${st.id}</td><td><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:24px;height:24px;border-radius:50%;background:${st.color};display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">${st.name.charAt(0)}</span>${st.name}</span></td><td><span class="badge bp2">${p}</span></td><td><span class="badge ba2">${a}</span></td><td><span class="badge bl2">${l}</span></td><td><span class="badge be2">${e}</span></td><td>${u}</td><td><div class="rbw"><div class="rb"><div class="rf" style="width:${rt}%"></div></div><span style="font-size:12px;font-weight:600;color:var(--present);min-width:34px">${rt}%</span></div></td></tr>`;}).join('')||'<tr><td colspan="8" class="empty">学生が登録されていません</td></tr>';
-  const h=document.getElementById('ovHead'),b=document.getElementById('ovMatrix');
-  h.innerHTML='<th>氏名</th>'+S.sessions.map(s=>`<th>${s.name}<br><span style="font-weight:400;font-size:11px">${s.date||''}</span></th>`).join('');
-  b.innerHTML=S.students.map(st=>`<tr><td>${st.name}</td>${S.sessions.map(ss=>{const v=((S.records[ss.id]||{})[st.id]||{}).status;return`<td><span class="badge ${v?{'present':'bp2','absent':'ba2','late':'bl2','excused':'be2'}[v]:'bu2'}">${v?SL[v]:'―'}</span></td>`;}).join('')}</tr>`).join('')||`<tr><td colspan="${S.sessions.length+1}" class="empty">データなし</td></tr>`;
-}
-
-function toggleExpSess(){document.getElementById('expSessWrap').style.display=document.getElementById('expTarget').value==='sess'?'':'none';}
-function renderReport(){renderSessEl();const el=document.getElementById('repSum');if(!S.sessions.length){el.innerHTML='<div class="empty">授業回が登録されていません</div>';return;}let h='<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:var(--tpl)"><th style="padding:8px 12px;text-align:left">授業回</th><th style="padding:8px 12px;text-align:center">出席</th><th style="padding:8px 12px;text-align:center">欠席</th><th style="padding:8px 12px;text-align:center">遅刻</th><th style="padding:8px 12px;text-align:center">公欠</th><th style="padding:8px 12px;text-align:center">出席率</th></tr></thead><tbody>';S.sessions.forEach(ss=>{let p=0,a=0,l=0,e=0;S.students.forEach(st=>{const v=((S.records[ss.id]||{})[st.id]||{}).status;if(v==='present')p++;else if(v==='absent')a++;else if(v==='late')l++;else if(v==='excused')e++;});const rt=S.students.length?Math.round((p+l)/Math.max(p+a+l+e,1)*100):0;h+=`<tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-weight:500">${ss.name}<br><span style="font-size:11px;color:var(--tl)">${ss.date||''}</span></td><td style="padding:8px 12px;text-align:center"><span class="badge bp2">${p}</span></td><td style="padding:8px 12px;text-align:center"><span class="badge ba2">${a}</span></td><td style="padding:8px 12px;text-align:center"><span class="badge bl2">${l}</span></td><td style="padding:8px 12px;text-align:center"><span class="badge be2">${e}</span></td><td style="padding:8px 12px;text-align:center;font-weight:600;color:var(--present)">${rt}%</td></tr>`;});el.innerHTML=h+'</tbody></table>';}
-function doExport(){const t=document.getElementById('expTarget').value;let csv='',fn='';const td=s=>SL[s]||'未入力';if(t==='sess'){const id=document.getElementById('expSess').value,ss=S.sessions.find(s=>s.id===id);csv='学籍番号,氏名,出欠状況,備考\n';S.students.forEach(st=>{const r=((S.records[id]||{})[st.id])||{};csv+=`"${st.id}","${st.name}","${td(r.status||null)}","${r.note||''}"\n`;});fn=`出欠_${ss?.name||id}.csv`;}else if(t==='matrix'){csv='学籍番号,氏名,'+S.sessions.map(s=>s.name).join(',')+'\n';S.students.forEach(st=>{csv+=[st.id,st.name,...S.sessions.map(ss=>td(((S.records[ss.id]||{})[st.id]||{}).status||null))].map(v=>`"${v}"`).join(',')+'\n';});fn='出欠マトリクス.csv';}else{csv='学籍番号,氏名,出席回数,欠席回数,遅刻回数,公欠回数,出席率\n';S.students.forEach(st=>{let p=0,a=0,l=0,e=0;S.sessions.forEach(ss=>{const v=((S.records[ss.id]||{})[st.id]||{}).status;if(v==='present')p++;else if(v==='absent')a++;else if(v==='late')l++;else if(v==='excused')e++;});csv+=`"${st.id}","${st.name}",${p},${a},${l},${e},${Math.round((p+l)/Math.max(p+a+l+e,1)*100)}%\n`;});fn='出欠サマリー.csv';}const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=fn;a.click();URL.revokeObjectURL(url);toast(`${fn} をダウンロードしました`);}
-
-// manage
-function renderManage(){
-  const n=S.students.length;document.getElementById('stuCount').textContent=n?`（${n}名）`:'';
-  document.getElementById('stuList').innerHTML=n?S.students.map((st,i)=>`<div class="smrow"><div class="av" style="background:${st.color};width:32px;height:32px;font-size:13px">${st.name.charAt(0)}</div><span style="font-size:14px;font-weight:500;flex:1">${st.name}</span><span style="font-size:12px;color:var(--tl)">${st.id}</span><div class="del-wrap" id="dw-s-${i}"><button class="btn bsm bd" onclick="armDel('s',${i})">削除</button><span class="confirm-hint">もう一度で削除</span></div></div>`).join(''):'<div class="empty" style="padding:16px">学生が登録されていません</div>';
-  const sid=document.getElementById('sessEl').value;
-  document.getElementById('sessList').innerHTML=S.sessions.map((s,i)=>`<div class="si ${s.id===sid?'asi':''}"><span class="sn2">${s.name}</span><span class="sd">${s.date||'日付未設定'}</span><span class="sc2">${cntRec(s.id)}/${S.students.length}</span><div class="del-wrap" id="dw-ss-${i}"><button class="btn bsm bd" onclick="armDel('ss',${i})">削除</button><span class="confirm-hint">もう一度で削除</span></div></div>`).join('')||'<div class="empty" style="padding:12px">授業回が登録されていません</div>';
-}
-function cntRec(sid){return Object.values(S.records[sid]||{}).filter(r=>r.status).length;}
-
-const armed={};
-function armDel(type,i){const key=`${type}-${i}`,wrap=document.getElementById(`dw-${type}-${i}`);if(armed[key]){clearTimeout(armed[key]);delete armed[key];wrap.classList.remove('armed');if(type==='s')delStu(i);else delSess(i);}else{wrap.classList.add('armed');armed[key]=setTimeout(()=>{wrap.classList.remove('armed');delete armed[key];},3000);}}
-
-async function delStu(i){
-  const st=S.students[i];toast('削除中...');
+window.setSt = async (sid,uid,st,btn) => {
+  const row = document.getElementById(`ar-${sid}-${uid}`);
+  row.classList.add('saving'); row.querySelectorAll('.sbtn').forEach(b=>b.disabled=true);
   try{
-    await spDel(listIds.students,st._id);
-    // delete related records
-    for(const sid of Object.keys(S.records)){
-      const rec=S.records[sid][st.id];
-      if(rec?._id) await spDel(listIds.records,rec._id).catch(()=>{});
-      delete(S.records[sid]||{})[st.id];
+    const stu = S.students.find(s=>s.id===uid);
+    const existRec = (S.records[sid]||{})[uid];
+    const data = {sessionId:sid,studentId:uid,studentEmail:stu?.email||'',status:st,note:existRec?.note||''};
+    if(existRec?._id){
+      await fsUpdate('attendance',existRec._id,{status:st}); existRec.status=st;
+    } else {
+      const _id = await fsAdd('attendance',data);
+      if(!S.records[sid]) S.records[sid]={};
+      S.records[sid][uid]={_id,...data};
     }
-    S.students.splice(i,1);
-    renderManage();renderSessEl();
-    const c=document.getElementById('sessEl').value;if(c){renderAlist(c);updateStats(c);}
-    toast(`${st.name} を削除しました`);
-  }catch(e){toast('削除エラー: '+e.message);}
-}
-async function delSess(i){
-  const s=S.sessions[i];toast('削除中...');
-  try{
-    await spDel(listIds.sessions,s._id);
-    const recs=Object.values(S.records[s.id]||{});
-    for(const r of recs) if(r._id) await spDel(listIds.records,r._id).catch(()=>{});
-    delete S.records[s.id];S.sessions.splice(i,1);
-    renderManage();renderSessEl();
-    const f=S.sessions[0];
-    if(f){document.getElementById('sessEl').value=f.id;loadSess();}
-    else{document.getElementById('alist').innerHTML='<div class="empty">授業回を選択してください</div>';updateStats('');}
-    toast(`「${s.name}」を削除しました`);
-  }catch(e){toast('削除エラー: '+e.message);}
+    row.querySelectorAll('.sbtn').forEach((b,i)=>{
+      b.disabled=false;
+      b.className='sbtn'+(['present','absent','late','excused'][i]===st?' s'+st.charAt(0):'');
+    });
+    updateStats(sid);
+  }catch(e){ toast('エラー: '+e.message); }
+  finally{ row.classList.remove('saving'); }
+};
+window.setNote = async (sid,uid,note) => {
+  const rec=(S.records[sid]||{})[uid];
+  if(rec?._id) await fsUpdate('attendance',rec._id,{note});
+  else if(rec) rec.note=note;
+};
+window.bulk = async (st) => {
+  const sid=document.getElementById('sessEl').value; if(!sid)return;
+  toast('一括登録中...');
+  for(const stu of S.students){
+    const existRec=(S.records[sid]||{})[stu.id];
+    const data={sessionId:sid,studentId:stu.id,studentEmail:stu.email||'',status:st,note:existRec?.note||''};
+    if(existRec?._id){ await fsUpdate('attendance',existRec._id,{status:st}); existRec.status=st; }
+    else if(st!==null){ const _id=await fsAdd('attendance',data); if(!S.records[sid])S.records[sid]={}; S.records[sid][stu.id]={_id,...data}; }
+  }
+  renderAlist(sid); updateStats(sid); toast('完了しました');
+};
+
+// ══ TEACHER: OVERVIEW ═══════════════════════════════
+function renderOverview(){
+  document.getElementById('ovBody').innerHTML = S.students.map(st=>{
+    let p=0,a=0,l=0,e2=0,u=0;
+    for(const ss of S.sessions){ const r=(S.records[ss._id]||{})[st.id]; if(r?.status==='present')p++; else if(r?.status==='absent')a++; else if(r?.status==='late')l++; else if(r?.status==='excused')e2++; else u++; }
+    const rate=S.sessions.length>0?Math.round(((p+l)*100)/S.sessions.length):'-';
+    return `<tr><td>${st.id}</td><td>${st.name}</td><td>${p}</td><td>${a}</td><td>${l}</td><td>${e2}</td><td>${u}</td><td><b>${rate}%</b></td></tr>`;
+  }).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--tl);padding:20px">学生が登録されていません</td></tr>';
+  document.getElementById('ovHead').innerHTML='<th>学生</th>'+S.sessions.map(ss=>`<th>${ss.name}</th>`).join('');
+  document.getElementById('ovMatrix').innerHTML=S.students.map(st=>`<tr><td>${st.name}</td>${S.sessions.map(ss=>{const r=(S.records[ss._id]||{})[st.id];const s=r?.status;return`<td style="${s?`background:var(--${s}-bg);color:var(--${s})`:''}">${s?SL[s]:'-'}</td>`;}).join('')}</tr>`).join('');
 }
 
-async function addStu(){
-  const id=document.getElementById('nSid').value.trim(),name=document.getElementById('nSname').value.trim();
-  if(!id||!name){toast('学籍番号と氏名を入力してください');return;}
-  if(S.students.find(s=>s.id===id)){toast('この学籍番号はすでに登録済みです');return;}
+// ══ TEACHER: REPORT ═════════════════════════════════
+function renderReport(){
+  const el=document.getElementById('repSum');
+  if(!S.sessions.length||!S.students.length){el.innerHTML='<div class="empty">データなし</div>';return;}
+  let total=0,present=0;
+  for(const ss of S.sessions)for(const st of S.students){const r=(S.records[ss._id]||{})[st.id];if(r?.status){total++;if(r.status==='present'||r.status==='late')present++;}}
+  const rate=total>0?Math.round((present/total)*100):0;
+  el.innerHTML=`<div class="srow"><div class="sc st"><div class="sn">${S.students.length}</div><div class="sl">登録学生数</div></div><div class="sc st"><div class="sn">${S.sessions.length}</div><div class="sl">授業回数</div></div><div class="sc sp"><div class="sn">${rate}%</div><div class="sl">平均出席率</div></div></div>`;
+}
+window.toggleExpSess=()=>{ document.getElementById('expSessWrap').style.display=document.getElementById('expTarget').value==='sess'?'':'none'; };
+window.doExport=()=>{
+  const target=document.getElementById('expTarget').value;
+  let csv='',fn='';
+  if(target==='all'){
+    csv='学籍番号,氏名,出席,欠席,遅刻,公欠,未入力,出席率\n';
+    for(const st of S.students){let p=0,a=0,l=0,e2=0,u=0;for(const ss of S.sessions){const r=(S.records[ss._id]||{})[st.id];if(r?.status==='present')p++;else if(r?.status==='absent')a++;else if(r?.status==='late')l++;else if(r?.status==='excused')e2++;else u++;}const rate=S.sessions.length>0?Math.round(((p+l)*100)/S.sessions.length):0;csv+=`${st.id},${st.name},${p},${a},${l},${e2},${u},${rate}%\n`;}
+    fn='出欠_サマリー.csv';
+  } else if(target==='sess'){
+    const sid=document.getElementById('expSess').value;const ss=S.sessions.find(x=>x._id===sid);if(!ss)return;
+    csv=`授業回,${ss.name}\n日付,${ss.date||''}\n\n学籍番号,氏名,出欠,備考\n`;
+    for(const st of S.students){const r=(S.records[sid]||{})[st.id];csv+=`${st.id},${st.name},${r?.status?SL[r.status]:'未入力'},${r?.note||''}\n`;}
+    fn=`出欠_${ss.name}.csv`;
+  } else {
+    csv='学生\\授業回,'+S.sessions.map(ss=>ss.name).join(',')+'\n';
+    for(const st of S.students){csv+=st.name+','+S.sessions.map(ss=>{const r=(S.records[ss._id]||{})[st.id];return r?.status?SL[r.status]:'';}).join(',')+'\n';}
+    fn='出欠_マトリクス.csv';
+  }
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);a.download=fn;a.click();
+};
+
+// ══ TEACHER: MANAGE ═════════════════════════════════
+function renderManage(){
+  document.getElementById('stuCount').textContent=`（${S.students.length}名）`;
+  document.getElementById('stuList').innerHTML=S.students.map((st,i)=>`
+    <div class="sitem">
+      <div class="av" style="background:${st.color};width:28px;height:28px;font-size:12px;flex-shrink:0">${st.name.charAt(0)}</div>
+      <div style="flex:1;min-width:0"><div style="font-weight:500;font-size:14px">${st.name}</div><div style="font-size:11px;color:var(--tl)">${st.id}${st.email?' / '+st.email:''}</div></div>
+      <div id="dc-${i}" style="display:none;gap:6px;align-items:center"><span style="font-size:12px;color:var(--absent)">削除？</span><button class="btn barm bsm" onclick="execDelStu('${st._id}','${st.id}',${i})">削除</button><button class="btn bs bsm" onclick="cancelDelStu(${i})">戻る</button></div>
+      <button class="btn bd bsm" id="db-${i}" onclick="armDelStu(${i})">削除</button>
+    </div>`).join('')||'<div class="empty">学生が登録されていません</div>';
+  document.getElementById('sessList').innerHTML=S.sessions.map((ss,i)=>`
+    <div class="sitem">
+      <div style="flex:1"><span style="font-weight:500">${ss.name}</span><span style="font-size:12px;color:var(--tl);margin-left:8px">${ss.date||''}</span></div>
+      <div id="sdc-${i}" style="display:none;gap:6px;align-items:center"><span style="font-size:12px;color:var(--absent)">削除？</span><button class="btn barm bsm" onclick="execDelSess('${ss._id}',${i})">削除</button><button class="btn bs bsm" onclick="cancelDelSess(${i})">戻る</button></div>
+      <button class="btn bd bsm" id="sdb-${i}" onclick="armDelSess(${i})">削除</button>
+    </div>`).join('')||'<div class="empty">授業回がありません</div>';
+}
+window.sw=(id,btn)=>{document.querySelectorAll('.pnl').forEach(p=>p.classList.remove('on'));document.querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));document.getElementById('pnl-'+id).classList.add('on');btn.classList.add('on');if(id==='o')renderOverview();if(id==='p')renderReport();if(id==='m')renderManage();};
+window.goNewSess=()=>{sw('m',document.querySelectorAll('.tb')[3]);renderManage();setTimeout(()=>document.getElementById('nSsName').focus(),100);};
+
+window.armDelStu=(i)=>{document.getElementById(`dc-${i}`).style.display='flex';document.getElementById(`db-${i}`).style.display='none';};
+window.cancelDelStu=(i)=>{document.getElementById(`dc-${i}`).style.display='none';document.getElementById(`db-${i}`).style.display='';};
+window.execDelStu=async(id,stuId,i)=>{
+  toast('削除中...');
+  await fsDel('students',id);
+  const recs=await fsQuery('attendance','studentId','==',stuId);
+  for(const r of recs) await fsDel('attendance',r._id);
+  S.students=S.students.filter(s=>s._id!==id);
+  for(const sid in S.records) delete S.records[sid][stuId];
+  renderManage();renderSessEl();const v=document.getElementById('sessEl').value;if(v){renderAlist(v);updateStats(v);}renderOverview();toast('削除しました');
+};
+window.addStu=async()=>{
+  const name=document.getElementById('nSname').value.trim();
+  const id=document.getElementById('nSid').value.trim();
+  const email=document.getElementById('nSemail').value.trim().toLowerCase();
+  if(!name){toast('氏名を入力してください');return;}
+  if(S.students.find(s=>s.name===name||(id&&s.id===id))){toast('すでに登録されています');return;}
   const color=COLORS[S.students.length%COLORS.length];
+  const sid=id||name.replace(/\s+/g,'_').slice(0,12);
   toast('追加中...');
-  try{
-    const _id=await spAdd(listIds.students,{Title:name,StudentId:id,Color:color,TeamsId:''});
-    S.students.push({_id,id,name,color,teamsId:''});
-    document.getElementById('nSid').value='';document.getElementById('nSname').value='';
-    renderManage();renderSessEl();toast(`${name} を追加しました`);
-  }catch(e){toast('追加エラー: '+e.message);}
-}
-
-async function addSess(){
-  const name=document.getElementById('nSsName').value.trim(),date=document.getElementById('nSsDate').value;
+  const _id=await fsAdd('students',{name,studentId:sid,email,color});
+  S.students.push({_id,id:sid,name,email,color});
+  document.getElementById('nSname').value='';document.getElementById('nSid').value='';document.getElementById('nSemail').value='';
+  renderManage();renderSessEl();const v=document.getElementById('sessEl').value;if(v){renderAlist(v);updateStats(v);}
+  toast(`「${name}」を追加しました`);
+};
+window.armDelSess=(i)=>{document.getElementById(`sdc-${i}`).style.display='flex';document.getElementById(`sdb-${i}`).style.display='none';};
+window.cancelDelSess=(i)=>{document.getElementById(`sdc-${i}`).style.display='none';document.getElementById(`sdb-${i}`).style.display='';};
+window.execDelSess=async(id,i)=>{
+  toast('削除中...');
+  await fsDel('sessions',id);
+  const recs=await fsQuery('attendance','sessionId','==',id);
+  for(const r of recs) await fsDel('attendance',r._id);
+  S.sessions=S.sessions.filter(s=>s._id!==id);delete S.records[id];
+  renderManage();renderSessEl();renderOverview();toast('削除しました');
+};
+window.addSess=async()=>{
+  const name=document.getElementById('nSsName').value.trim();const date=document.getElementById('nSsDate').value;
   if(!name){toast('授業回名を入力してください');return;}
   toast('追加中...');
-  try{
-    const _id=await spAdd(listIds.sessions,{Title:name,SessionDate:date});
-    S.sessions.push({_id,id:_id,name,date});S.records[_id]={};
-    document.getElementById('nSsName').value='';document.getElementById('nSsDate').value='';
-    renderManage();renderSessEl();renderReport();toast(`「${name}」を追加しました`);
-  }catch(e){toast('追加エラー: '+e.message);}
-}
-
-function armReset(t){document.getElementById('rc-'+t).style.display='block';}
-function cancelReset(t){document.getElementById('rc-'+t).style.display='none';}
-async function execReset(t){
-  toast('削除中...');
-  document.getElementById('rc-'+t).style.display='none';
+  const _id=await fsAdd('sessions',{name,date});
+  S.sessions.push({_id,name,date});S.records[_id]={};
+  document.getElementById('nSsName').value='';document.getElementById('nSsDate').value='';
+  renderManage();renderSessEl();renderReport();toast(`「${name}」を追加しました`);
+};
+window.armReset=(t)=>{ document.getElementById('rc-'+t).style.display='block'; };
+window.cancelReset=(t)=>{ document.getElementById('rc-'+t).style.display='none'; };
+window.execReset=async(t)=>{
+  toast('削除中...');document.getElementById('rc-'+t).style.display='none';
   try{
     if(t==='students'||t==='all'){
-      for(const st of S.students) await spDel(listIds.students,st._id).catch(()=>{});
-      const allRec=[].concat(...Object.values(S.records).map(o=>Object.values(o)));
-      for(const r of allRec) if(r._id) await spDel(listIds.records,r._id).catch(()=>{});
+      for(const st of S.students) await fsDel('students',st._id);
+      const recs=await fsGetAll('attendance');for(const r of recs) await fsDel('attendance',r._id);
       S.students=[];S.records={};
     }
-    if(t==='all'){
-      for(const ss of S.sessions) await spDel(listIds.sessions,ss._id).catch(()=>{});
-      S.sessions=[];
-    }
-    renderManage();renderSessEl();
-    const c=document.getElementById('sessEl').value;if(c){renderAlist(c);updateStats(c);}
+    if(t==='all'){ for(const ss of S.sessions) await fsDel('sessions',ss._id); S.sessions=[]; }
+    renderManage();renderSessEl();const v=document.getElementById('sessEl').value;if(v){renderAlist(v);updateStats(v);}
     toast('削除しました');
   }catch(e){toast('エラー: '+e.message);}
-}
+};
 
-// Teams picker
-async function openTeamsPicker(){
+// ══ TEAMS PICKER ════════════════════════════════════
+window.openTeamsPicker=async()=>{
   if(!teamsReady){toast('Teamsのタブ内でのみ使用できます');return;}
   try{
     const people=await microsoftTeams.people.selectPeople({title:'追加する学生を選択',singleSelect:false,openOrgWideSearchInChatOrChannel:true,setSelected:[]});
@@ -767,52 +625,56 @@ async function openTeamsPicker(){
     let added=0,skip=0;
     for(const p of people){
       const name=p.displayName||'';
-      const id=(p.email||p.userPrincipalName||'').split('@')[0]||name.replace(/\s/g,'_').slice(0,12);
+      const email=(p.email||p.userPrincipalName||'').toLowerCase();
+      const id=email.split('@')[0]||name.replace(/\s/g,'_').slice(0,12);
       if(!name||S.students.find(s=>s.name===name||(id&&s.id===id))){skip++;continue;}
       const color=COLORS[S.students.length%COLORS.length];
-      toast('追加中...');
-      try{
-        const _id=await spAdd(listIds.students,{Title:name,StudentId:id,Color:color,TeamsId:p.objectId||''});
-        S.students.push({_id,id,name,color,teamsId:p.objectId||''});added++;
-      }catch(e){}
+      try{ const _id=await fsAdd('students',{name,studentId:id,email,color,teamsId:p.objectId||''}); S.students.push({_id,id,name,email,color,teamsId:p.objectId||''}); added++; }catch(e){}
     }
-    renderManage();renderSessEl();
-    const c=document.getElementById('sessEl').value;if(c){renderAlist(c);updateStats(c);}
+    renderManage();renderSessEl();const v=document.getElementById('sessEl').value;if(v){renderAlist(v);updateStats(v);}
     toast(`✅ ${added}名を追加${skip?`（${skip}名スキップ）`:''}`);
   }catch(e){toast('エラー: '+e.message);}
-}
+};
 
-// CSV import
-function onImportFile(e){const f=e.target.files[0];if(!f)return;const ext=f.name.split('.').pop().toLowerCase(),r=new FileReader();if(ext==='csv'){r.onload=ev=>parseCSV(ev.target.result);r.readAsText(f,'UTF-8');}else{r.onload=ev=>{const wb=XLSX.read(ev.target.result,{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]];processRaw(XLSX.utils.sheet_to_json(ws,{header:1,defval:''}));};r.readAsArrayBuffer(f);}}
+// ══ CSV IMPORT ══════════════════════════════════════
+window.onImportFile=(e)=>{const f=e.target.files[0];if(!f)return;const ext=f.name.split('.').pop().toLowerCase(),r=new FileReader();if(ext==='csv'){r.onload=ev=>parseCSV(ev.target.result);r.readAsText(f,'UTF-8');}else{r.onload=ev=>{const wb=XLSX.read(ev.target.result,{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]];processRaw(XLSX.utils.sheet_to_json(ws,{header:1,defval:''}));};r.readAsArrayBuffer(f);}};
 function parseCSV(txt){const lines=txt.split(/\r?\n/).filter(l=>l.trim()),data=lines.map(line=>{const c=[];let cur='',q=false;for(const ch of line){if(ch==='"')q=!q;else if(ch===','&&!q){c.push(cur.trim());cur='';}else cur+=ch;}c.push(cur.trim());return c;});processRaw(data);}
-function processRaw(data){if(data.length<2){toast('データが少なすぎます');return;}iHeaders=data[0].map(h=>String(h).trim());iRows=data.slice(1).filter(r=>r.some(c=>String(c).trim()));const ni=best(iHeaders,['名前','氏名','表示名','name','displayname','display name']),ii=best(iHeaders,['メールアドレス','メール','学籍番号','email','upn','mail','id']),ri=best(iHeaders,['ロール','役割','role','type']);['cName','cId','cRole'].forEach((id,k)=>{const sel=document.getElementById(id),isR=k===2;sel.innerHTML=(isR?'<option value="">なし</option>':'')+iHeaders.map((h,j)=>`<option value="${j}">${h||'列'+(j+1)}</option>`).join('');});document.getElementById('cName').value=ni>=0?ni:0;document.getElementById('cId').value=ii>=0?ii:0;if(ri>=0){document.getElementById('cRole').value=ri;document.getElementById('rfWrap').style.display='';}else{document.getElementById('cRole').value='';document.getElementById('rfWrap').style.display='none';}document.getElementById('iprev').style.display='';prevRefresh();}
+function processRaw(data){
+  if(data.length<2){toast('データが少なすぎます');return;}
+  iHeaders=data[0].map(h=>String(h).trim());iRows=data.slice(1).filter(r=>r.some(c=>String(c).trim()));
+  const ni=best(iHeaders,['名前','氏名','表示名','name','displayname']);
+  const ii=best(iHeaders,['メールアドレス','メール','学籍番号','email','upn','mail','id']);
+  const ri=best(iHeaders,['ロール','役割','role','type']);
+  ['cName','cId','cRole'].forEach((id,k)=>{const sel=document.getElementById(id),isR=k===2;sel.innerHTML=(isR?'<option value="">なし</option>':'')+iHeaders.map((h,j)=>`<option value="${j}">${h||'列'+(j+1)}</option>`).join('');});
+  document.getElementById('cName').value=ni>=0?ni:0;document.getElementById('cId').value=ii>=0?ii:0;
+  if(ri>=0){document.getElementById('cRole').value=ri;document.getElementById('rfWrap').style.display='';}else{document.getElementById('cRole').value='';document.getElementById('rfWrap').style.display='none';}
+  document.getElementById('iprev').style.display='';prevRefresh();
+}
 function best(h,kws){for(const kw of kws){const i=h.findIndex(x=>x.toLowerCase().replace(/\s/g,'').includes(kw.toLowerCase().replace(/\s/g,'')));if(i>=0)return i;}return-1;}
-function filteredRows(){const ni=+document.getElementById('cName').value,ri=document.getElementById('cRole').value,rf=document.getElementById('rfVal').value;return iRows.filter(r=>{if(ri!==''&&rf==='m'){const role=String(r[+ri]||'').toLowerCase();if(role.includes('owner')||role.includes('所有者')||role.includes('teacher')||role.includes('教師'))return false;}return String(r[ni]||'').trim().length>0;});}
-function prevRefresh(){const ri=document.getElementById('cRole').value;document.getElementById('rfWrap').style.display=ri!==''?'':'none';const ni=+document.getElementById('cName').value,ii=document.getElementById('cId').value,rows=filteredRows();document.getElementById('prevBody').innerHTML=rows.slice(0,30).map(r=>`<tr><td>${String(r[ni]||'').trim()}</td><td>${ii!==''?String(r[+ii]||'').trim():'（自動）'}</td><td>${ri!==''?String(r[+document.getElementById('cRole').value]||'').trim():''}</td></tr>`).join('')||'<tr><td colspan="3" style="text-align:center;color:var(--tl);padding:12px">該当なし</td></tr>';document.getElementById('prevCount').textContent=`${rows.length}名予定`;}
-async function doImport(){
+window.filteredRows=()=>{const ni=+document.getElementById('cName').value,ri=document.getElementById('cRole').value,rf=document.getElementById('rfVal').value;return iRows.filter(r=>{if(ri!==''&&rf==='m'){const role=String(r[+ri]||'').toLowerCase();if(role.includes('owner')||role.includes('所有者')||role.includes('teacher'))return false;}return String(r[ni]||'').trim().length>0;});};
+window.prevRefresh=()=>{const ri=document.getElementById('cRole').value;document.getElementById('rfWrap').style.display=ri!==''?'':'none';const ni=+document.getElementById('cName').value,ii=document.getElementById('cId').value,rows=filteredRows();document.getElementById('prevBody').innerHTML=rows.slice(0,30).map(r=>`<tr><td>${String(r[ni]||'').trim()}</td><td>${ii!==''?String(r[+ii]||'').trim():'（自動）'}</td><td>${ri!==''?String(r[+document.getElementById('cRole').value]||'').trim():''}</td></tr>`).join('')||'<tr><td colspan="3" style="text-align:center;color:var(--tl);padding:12px">該当なし</td></tr>';document.getElementById('prevCount').textContent=`${rows.length}名予定`;};
+window.doImport=async()=>{
   const ni=+document.getElementById('cName').value,ii=document.getElementById('cId').value,rows=filteredRows();
   let added=0,skip=0;
   for(const[idx,r] of rows.entries()){
     const name=String(r[ni]||'').trim();if(!name)continue;
-    let id=ii!==''?String(r[+ii]||'').trim():'';
-    if(!id||id===name)id=name.replace(/\s+/g,'_').slice(0,12)||`ST${String(idx+1).padStart(3,'0')}`;
-    else if(id.includes('@'))id=id.split('@')[0];
+    let rawId=ii!==''?String(r[+ii]||'').trim():'';let email='';
+    if(rawId.includes('@')){email=rawId.toLowerCase();rawId=rawId.split('@')[0];}
+    let id=rawId||name.replace(/\s+/g,'_').slice(0,12)||`ST${String(idx+1).padStart(3,'0')}`;
     if(S.students.find(s=>s.id===id||s.name===name)){skip++;continue;}
     const color=COLORS[S.students.length%COLORS.length];
-    try{const _id=await spAdd(listIds.students,{Title:name,StudentId:id,Color:color,TeamsId:''});S.students.push({_id,id,name,color,teamsId:''});added++;}catch(e){}
+    try{const _id=await fsAdd('students',{name,studentId:id,email,color});S.students.push({_id,id,name,email,color});added++;}catch(e){}
   }
-  renderManage();renderSessEl();cancelImport();
-  toast(`✅ ${added}名を追加${skip?`（${skip}名スキップ）`:''}`);
-}
-function cancelImport(){document.getElementById('iprev').style.display='none';document.getElementById('ifile').value='';iRows=[];iHeaders=[];}
+  renderManage();renderSessEl();cancelImport();toast(`✅ ${added}名を追加${skip?`（${skip}名スキップ）`:''}`);
+};
+window.cancelImport=()=>{document.getElementById('iprev').style.display='none';document.getElementById('ifile').value='';iRows=[];iHeaders=[];};
 
+// Drag & drop
 const ib=document.getElementById('ibox');
 ib.addEventListener('dragover',e=>{e.preventDefault();ib.style.background='#d0d0ec';});
 ib.addEventListener('dragleave',()=>{ib.style.background='';});
 ib.addEventListener('drop',e=>{e.preventDefault();ib.style.background='';const f=e.dataTransfer.files[0];if(f){const dt=new DataTransfer();dt.items.add(f);document.getElementById('ifile').files=dt.files;onImportFile({target:{files:dt.files}});}});
 
-// Start
-init();
 </script>
 </body>
 </html>
