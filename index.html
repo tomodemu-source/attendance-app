@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>出欠管理</title>
 <script src="https://res.cdn.office.net/teams-js/2.22.0/js/MicrosoftTeams.min.js"></script>
-<script src="https://alcdn.msauth.net/browser/3.1.0/js/msal-browser.min.js"></script>
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{color-scheme:light;--tp:#6264A7;--tpd:#464775;--tpl:#E8E8F0;--present:#107C10;--present-bg:#DFF6DD;--absent:#C50F1F;--absent-bg:#FDE7E9;--late:#D67D00;--late-bg:#FFF4CE;--excused:#0078D4;--excused-bg:#EFF6FC;--unset:#616161;--unset-bg:#F3F2F1;--border:#E1DFDD;--bg:#F5F5F5;--card:#fff;--text:#201F1E;--tl:#605E5C;--r:6px;--sh:0 2px 8px rgba(0,0,0,.08)}
@@ -313,7 +313,7 @@ async function initMSAL(){
     auth:{ clientId:CFG.clientId, authority:`https://login.microsoftonline.com/${CFG.tenantId}`, redirectUri:CFG.redirectUri },
     cache:{ cacheLocation:'sessionStorage' }
   });
-  await msalInst.initialize();
+  // v2 does not need initialize()
   const res = await msalInst.handleRedirectPromise();
   if(res) graphToken = res.accessToken;
   return msalInst.getAllAccounts();
