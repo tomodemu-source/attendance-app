@@ -268,7 +268,7 @@ const db    = getFirestore(fbApp);
 
 const msProvider = new OAuthProvider('microsoft.com');
 msProvider.setCustomParameters({ tenant: CFG.tenantId, prompt: 'select_account' });
-msProvider.addScope('User.Read');
+// User.Read不要（Firestoreを使うためGraph APIは不要）
 
 // ══ STATE ═══════════════════════════════════════════
 const COLORS = ['#6264A7','#0078D4','#038387','#107C10','#E8720C','#C239B3','#8764B8','#00B4D2'];
